@@ -1,1 +1,0 @@
-# AssystNet---Marcador-de-Status
