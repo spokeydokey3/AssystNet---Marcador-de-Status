@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AssystNet · Tags e backup</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <span class="eyebrow">ASSYSTNET</span>
+    <h1>Meus marcadores</h1>
+    <p>Organize os chamados e leve suas marcações e contatos com você.</p>
+    <div class="stats"><span id="tagCount">0 tags</span><span id="ticketCount">0 chamados marcados</span></div>
+  </header>
+  <main>
+    <section aria-labelledby="tagsTitle">
+      <h2 id="tagsTitle">Suas tags</h2>
+      <label class="sr-only" for="tagSearch">Buscar tag</label>
+      <input type="search" id="tagSearch" placeholder="Buscar uma tag…">
+      <div id="tagList" class="tag-list"></div>
+    </section>
+    <details id="tagEditor" class="card">
+      <summary id="formTitle">Criar tag</summary>
+      <form id="tagForm">
+        <input type="hidden" id="tagId">
+        <label for="tagName">Nome</label>
+        <input type="text" id="tagName" placeholder="Ex.: Aguardando retorno" maxlength="80" required>
+        <label for="colorPicker">Cor</label>
+        <div class="color-row">
+          <input type="color" id="colorPicker" value="#2563eb" aria-label="Escolher cor personalizada">
+          <div class="hex-field"><label for="hexInput">HEX</label><input type="text" id="hexInput" value="#2563EB" maxlength="7" spellcheck="false" required></div>
+          <span id="tagPreview" class="tag-badge">Prévia</span>
+        </div>
+        <div class="color-swatches" id="colorSwatches" role="group" aria-label="Cores sugeridas"></div>
+        <div class="form-actions">
+          <button type="submit" id="btnSaveTag" class="primary">Adicionar tag</button>
+          <button type="button" id="btnCancelEdit" hidden>Cancelar</button>
+        </div>
+      </form>
+    </details>
+    <details id="ticketManager" class="card">
+      <summary>Chamados marcados</summary>
+      <p class="help">Consulte marcações e contatos pelo número, mesmo se o chamado já saiu da fila. Remover uma tag preserva os contatos; limpar contatos preserva a tag.</p>
+      <label for="ticketSearch">Buscar chamado ou tag</label>
+      <input type="search" id="ticketSearch" placeholder="Ex.: S2471375">
+      <div id="ticketList" class="tag-list"></div>
+      <button id="btnMoreTickets" class="text-button" hidden>Mostrar mais</button>
+      <p id="ticketListCount" class="help"></p>
+    </details>
+    <section class="card" aria-labelledby="reportTitle">
+      <h2 id="reportTitle">Relatório da minha fila atual</h2>
+      <p class="help">Abra “Chamados atribuídos a mim”, retire filtros de busca, atualize a fila no AssystNet e exporte pelo ícone da extensão nessa aba. A tabela será percorrida automaticamente; aguarde sem alterar a fila.</p>
+      <button id="btnCSV" class="primary">Exportar minha fila atual (CSV)</button>
+      <p class="help">Somente chamados com status Aberto na fila conferida, ordenados por tag e número. Inclui “Sem tag”, as quatro datas de contato e a situação do acompanhamento. Se o total não puder ser conferido, a exportação será interrompida.</p>
+    </section>
+    <section id="backupSection" class="card" aria-labelledby="backupTitle">
+      <h2 id="backupTitle">Troca de computador</h2>
+      <p class="help">Antes de sair, salve o backup JSON. No outro computador, instale a extensão e importe esse arquivo.</p>
+      <div class="backup-actions">
+        <button id="btnExport" class="primary">Salvar backup JSON</button>
+        <button id="btnImport">Importar backup JSON</button>
+      </div>
+      <p class="help">O backup inclui todas as tags, marcações e datas de contato salvas, inclusive de chamados que saíram da fila. Use JSON para restaurar os dados; o CSV é um relatório. Históricos com tentativas no mesmo dia precisam da versão 3.4.1 ou posterior.</p>
+      <button id="btnTransferTab" class="text-button">Abrir transferência em uma janela</button>
+      <button id="btnUpgradeBackup" class="text-button" hidden>Salvar cópia anterior à migração</button>
+      <input type="file" id="fileInput" accept=".json,application/json" hidden>
+      <div id="importPreview" class="import-preview" hidden>
+        <h3>Conferir importação</h3>
+        <p id="importSummary"></p>
+        <label for="importMode">Como importar?</label>
+        <select id="importMode">
+          <option value="merge">Mesclar com este computador</option>
+          <option value="replace">Substituir todos os dados locais</option>
+        </select>
+        <p id="importExplanation" class="help"></p>
+        <div class="form-actions">
+          <button id="btnConfirmImport" class="primary">Confirmar importação</button>
+          <button id="btnCancelImport">Cancelar</button>
+        </div>
+      </div>
+    </section>
+    <p id="feedback" role="status" aria-live="polite"></p>
+  </main>
+  <script src="data.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

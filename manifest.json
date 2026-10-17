@@ -1,0 +1,55 @@
+{
+  "manifest_version": 3,
+  "name": "AssystNet - Marcador de Status",
+  "version": "3.5.0",
+  "description": "Tags e tentativas de contato no AssystNet, na fila e no chamado, com backup JSON e relatório CSV.",
+  "incognito": "not_allowed",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "assyst-status-tagger@tjce.local",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ]
+      }
+    },
+    "gecko_android": {
+      "strict_min_version": "142.0"
+    }
+  },
+  "permissions": [
+    "storage",
+    "downloads"
+  ],
+  "background": {
+    "scripts": [
+      "data.js",
+      "background.js"
+    ]
+  },
+  "host_permissions": [
+    "http://cati.tj.ce.gov.br/assystnet/*",
+    "https://cati.tjce.jus.br/assystnet/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "AssystNet - Gerenciar Tags"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://cati.tj.ce.gov.br/assystnet/*",
+        "https://cati.tjce.jus.br/assystnet/*"
+      ],
+      "js": [
+        "data.js",
+        "queue.js",
+        "content.js",
+        "detail.js"
+      ],
+      "run_at": "document_end",
+      "all_frames": true
+    }
+  ]
+}

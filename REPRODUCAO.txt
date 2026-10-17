@@ -1,0 +1,15 @@
+Version: 3.5.0
+Build environment: Linux, Python 3.12.14
+Minimum documented Python: 3.12
+
+AssystNet-3.5.0-chrome.zip
+SHA256: 4c1b25a2f9d0bd38c6f0bff7eeef1e084381cbc9134992cbdeebe27e2e700888
+Build: python3 build.py --browser chrome
+
+AssystNet-3.5.0-submissao.zip
+SHA256: 0b3367f0c4c457f928c19eb912064fdc113d047ecb22f240499a636660277ab8
+Build: python3 build.py --browser firefox
+
+The Chrome build writes its own manifest and adds the compatibility-script include to popup.html.
+JavaScript source files are copied unchanged. No third-party runtime or build dependencies.
+See CONSTRUIR.md for complete commands; VALIDACAO.md records checks and native-browser limits.
