@@ -1,76 +1,47 @@
-AssystNet Status Tagger - review notes
+AssystNet Status Tagger — Firefox 3.6.0 review notes
 
-Purpose: internal ticket tagging for support operators on
-http://cati.tj.ce.gov.br/assystnet/* and
-https://cati.tjce.jus.br/assystnet/* (Firefox desktop).
+Purpose: local ticket tags and operator-maintained contact checkboxes on the two
+AssystNet hosts declared in the manifest. No official ticket status is changed.
+No network requests, telemetry, remote code or third-party data transmission.
+Permissions remain storage and downloads. Data uses browser.storage.local only.
+The existing Firefox ID assyst-status-tagger@tjce.local is preserved.
 
-All source files are human-readable JavaScript, HTML and CSS. There is no transpilation, bundling, minification, obfuscation, external library
-or remote executable code. build.py only packages the nine readable runtime source
-files unchanged, with deterministic ZIP metadata in the Firefox build. The Chrome build changes
-manifest metadata and inserts its compatibility script in the popup. See CONSTRUIR.md in the source
-archive for complete reproduction steps and OS/Python requirements.
+The nine runtime files are readable JavaScript, HTML and CSS. No framework,
+bundler, transpiler, minifier or external runtime library is used. Source ZIP includes
+build.py, requirements and full step-by-step instructions in CONSTRUIR.md.
+With Python 3.12+ run: python3 build.py --browser firefox
+The output is releases/AssystNet-3.6.0-submissao.zip. Tested on Linux/Python 3.12.14.
+No npm dependencies or network access are required to build. The script copies the
+Firefox runtime bytes unchanged, with fixed ZIP metadata; REPRODUCAO.txt records
+the SHA-256. Source-to-submission reproduction was checked byte for byte.
+Chrome adapters in the shared source archive are excluded from the Firefox ZIP.
 
-Permissions:
-- storage: browser.storage.local stores tag definitions, ticket assignments, local contact-attempt dates and user-reported response dates, and
-  a one-time local backup before migration. No browser.storage.sync is used.
-- downloads: saves user-requested local JSON backups and CSV spreadsheets using
-  Blob URLs. URLs are revoked after download completion/interruption.
-- host access: only these two AssystNet hosts, with content-script matching restricted
-  to /assystnet/*. No broad host access, credentials or account access APIs.
+Changes:
+- Detail controls match the complete #events/ reference to a visible breadcrumb,
+  irrespective of breadcrumb position. Stale controls cannot edit a different ticket.
+- Four independent checkboxes can toggle freely, without a confirmation dialog.
+  Dates are marking dates, not evidence of actual contact. Calendar-day information
+  and the seven-day reference are informational; no date, holiday or response lock.
+- Storage schema 3 and JSON format 3 retain independent checkbox positions.
+  Legacy formats and dates migrate without dropping tag assignments. Unknown future
+  schemas are rejected without rewriting their data. Older clients cannot import v3.
+- Automatic cleanup is enabled by default for the observed own-queue route
+  #eventMonitor/4. It refuses detected filters, loading, ambiguous/incomplete grids,
+  other routes and changed contexts. It compares two complete virtual-grid captures,
+  validates full membership and rechecks context before committing. Only absent
+  ticket tag assignments and contact records are removed; tag definitions remain.
+  Empty queues never wipe records automatically and require explicit manual confirmation.
+  A single recovery checkpoint and the new state are committed in one storage write.
+  Restore preserves subsequent edits and pauses automatic cleanup. No history cleanup
+  is performed from individual ticket pages or partial visible rows.
+- CSV uses only open references from a fresh scan, rather than historic storage.
 
-There are no network requests from the extension, no telemetry, no analytics
-and no third-party data transmission. It reads ticket-reference cells, status-text
-cells, the selected queue label and the displayed queue counter. It does not read
-other ticket detail fields. On individual ticket pages it reads only the URL
-reference and the matching ticket-reference breadcrumb, then reuses the queue controls. Tag labels are provided by the operator. Export is explicitly
-initiated by the operator and writes to the local filesystem. The declaration
-data_collection_permissions.required = ["none"] reflects that behavior.
-Private browsing is disabled (incognito = not_allowed).
+Testing: 53 automated Node tests, seven simulated-DOM scenarios and four Chromium
+interface/Blob checks with simulated extension APIs passed. Firefox ZIP web-ext
+10.8.0 lint: zero errors, warnings and notices. Firefox/live institutional integration
+must still be tested by an authorized operator. Filter detection depends on the host DOM.
 
-The background is an MV3 event page with top-level listeners. All durable state
-is written to storage.local and reloaded from it; it is not dependent on globals
-surviving Firefox or event-page restarts. Updates preserve the original extension
-ID assyst-status-tagger@tjce.local and the previous data keys/IDs. Old JSON formats
-are migrated with no deletion of the original tag assignments.
-
-Functional checks:
-1. Open the popup; create and edit a tag/color.
-2. In an authorized AssystNet test environment, choose a tag next to a ticket
-   reference in td.field-eventRef. Scroll/recycle rows and verify assignments.
-3. Open “Chamados atribuídos a mim”, remove filters, refresh the queue and export
-   CSV from the toolbar popup on that tab. It scrolls the dgrid to collect fresh
-   references, checks the total, and exports only rows whose status text is Aberto/Open.
-   It refuses incomplete/ambiguous/changing queues, rather than falling back to
-   stored historic assignments. It orders by tag then reference and includes untagged
-   open tickets. No snapshot is kept after export. Test with synthetic data.
-4. Under “Chamados marcados”, remove a historical ticket assignment; the tag and
-   other assignments remain. Export JSON (includes all stored assignments) and
-   import it in an independent extension window with preview and merge/replace controls.
-   The window captures the source tab ID for CSV; it does not export from unrelated tabs.
-5. With the permanently installed signed add-on, restart Firefox in the same
-   profile and verify the stored tags, ticket assignments and contact history remain.
-6. Mark the next of four inline contact checkboxes after making a real contact.
-   Dates use the local computer calendar. Up to four contacts may be marked on the same day or on consecutive days;
-   the last one can be undone with confirmation. Each mark uses today's date; it
-   does not backdate previously performed contacts. Details allow marking a response (keeps dates, stops the process)
-   or clearing history with confirmation. Closure is never automated: a visual
-   reminder appears the day after contact four and at least seven days after contact
-   one. JSON v2 includes history; old JSON imports remain supported. CSV still
-   includes only verified open queue references, with contact columns added.
-7. Open #events/2142782 or #events/R2478233 and verify the controls beside the
-   breadcrumb match the queue. Change tickets with the native navigation buttons;
-   references must remain separate, and stale controls cannot save to another ticket.
-
-Version 3.5.0 preserves the 3.4.1 extension ID, schema and stored tag/contact keys.
-Backups with repeated attempt dates require 3.4.1 or newer; older interval-enforcing
-versions may reject them. Synthetic automated tests passed; live institutional
-Firefox integration still needs operator validation.
-
-Access to the live institutional application may be restricted or require an
-account. No operational credentials or real ticket data are included in this
-submission. If additional functional access is required, please request an
-authorized test environment/account through the AMO review process.
-
-The Firefox runtime package does not contain the Chrome adapters or request offscreen
-permission. The shared source archive includes them for the separate Chrome build.
-Use python3 build.py --browser firefox to reproduce the Firefox ZIP.
+Suggested review: create a tag, open a ticket from different entry points, toggle
+nonconsecutive boxes, transfer JSON, and check own-queue cleanup/recovery using synthetic
+data. Live institutional access may require an authorized account. No credentials,
+operational backups or real ticket details are included in the submission.

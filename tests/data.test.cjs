@@ -81,5 +81,5 @@ test('queue CSV omits old assignments, includes untagged tickets, deduplicates a
   assert.ok(csv.indexOf('"S10"') < csv.indexOf('"R1"'));
   assert.equal(csv.split('\r\n').length, 6);
   assert.equal(data.csv(state, []).split('\r\n').length, 2);
-  assert.ok(data.csv(state, []).includes('"Contato 4"'));
+  assert.ok(data.csv(state, []).includes('"Marcação 4"'));
 });

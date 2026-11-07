@@ -22,7 +22,7 @@ const { background, root } = require('./harness.cjs');
       return result;
     });
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>AssystNet synthetic queue</title></head><body>
-      <nav><span class="breadcrumb no-link-breadcrumb" data-component-tag="breadcrumb-index-2">2142782</span></nav>
+      <nav><span class="breadcrumb no-link-breadcrumb" data-component-tag="breadcrumb-index-1">2142782</span></nav>
       <select id="queue"><option>Chamados atribuídos a mim</option></select>
       <p>Exibição de eventos 1 - 3 de 3</p>
       <div class="dgrid"><table><thead><tr><th class="field-eventRef">Referência</th><th class="field-status">Status (Texto)</th></tr></thead>
@@ -54,13 +54,13 @@ const { background, root } = require('./harness.cjs');
           !host.shadowRoot.querySelectorAll('input')[count - 1].disabled);
       }, index + 1);
     }
-    assert.equal((await bg.send('get')).state.assyst_contacts['2142782'].attempts.length, 4);
+    assert.equal((await bg.send('get')).state.assyst_contacts['2142782'].checks.filter(Boolean).length, 4);
     console.log('PASS Chromium UI: shared Chrome adapter, tags, four same-day attempts and both views.');
 
     const stale = await detail.locator('input[type=checkbox]').nth(3).elementHandle();
     await page.evaluate(() => { history.pushState(null, '', '#events/R2478233?eventType=4&currentIndex=4'); });
     await stale.evaluate(node => node.click());
-    assert.equal((await bg.send('get')).state.assyst_contacts['2142782'].attempts.length, 4);
+    assert.equal((await bg.send('get')).state.assyst_contacts['2142782'].checks.filter(Boolean).length, 4);
     // The rejected stale action deliberately shows an error dialog; dismiss it as a user would.
     await page.keyboard.press('Escape');
     await page.locator('.breadcrumb').evaluate(node => { node.textContent = 'R2478233'; });
@@ -69,7 +69,7 @@ const { background, root } = require('./harness.cjs');
     await page.waitForFunction(() => document.querySelector('[data-assyst-ui="detail-controls"] input') === null ||
       document.querySelector('[data-assyst-ui="detail-controls"] .assyst-contact-controls')?.shadowRoot.querySelector('input')?.checked);
     await page.waitForTimeout(50);
-    assert.equal((await bg.send('get')).state.assyst_contacts.R2478233.attempts.length, 1);
+    assert.equal((await bg.send('get')).state.assyst_contacts.R2478233.checks.filter(Boolean).length, 1);
     console.log('PASS Chromium UI: SPA navigation blocks stale controls and preserves full R references.');
 
     const captured = await page.evaluate(() => new Promise((resolve, reject) => {

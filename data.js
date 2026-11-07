@@ -9,7 +9,7 @@ globalThis.AssystData = (() => {
     { id: 'ERRO_GERAL', label: 'Erro Geral', bg: '#7C3AED', color: '#FFFFFF' }
   ];
   const KEYS = ['assyst_tags', 'assyst_custom_tags', 'assyst_ticket_tags', 'assyst_contacts', 'assyst_revision',
-    'assyst_schema_version', 'assyst_has_upgrade_backup'];
+    'assyst_schema_version', 'assyst_has_upgrade_backup', 'assyst_auto_sync', 'assyst_last_queue_sync', 'assyst_has_cleanup_backup'];
   const own = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
   const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
@@ -102,7 +102,7 @@ globalThis.AssystData = (() => {
     if (!record(data) || !['assyst_tags', 'assyst_custom_tags', 'assyst_ticket_tags', 'assyst_contacts'].some(key => own(data, key))) {
       throw new Error('Este arquivo não é um backup de tags do AssystNet.');
     }
-    if (own(data, 'formatVersion') && ![1, 2].includes(data.formatVersion)) throw new Error('Versão de backup não suportada.');
+    if (own(data, 'formatVersion') && ![1, 2, 3].includes(data.formatVersion)) throw new Error('Versão de backup não suportada.');
     return normalize(data);
   }
 
@@ -115,7 +115,7 @@ globalThis.AssystData = (() => {
   }
 
   function backup(state) {
-    return JSON.stringify({ formatVersion: 2, exportedAt: new Date().toISOString(),
+    return JSON.stringify({ formatVersion: 3, exportedAt: new Date().toISOString(),
       assyst_tags: state.assyst_tags, assyst_ticket_tags: state.assyst_ticket_tags,
       assyst_contacts: state.assyst_contacts }, null, 2);
   }
@@ -137,48 +137,63 @@ globalThis.AssystData = (() => {
   function displayDate(value) { day(value); return value.split('-').reverse().join('/'); }
 
   function contact(value = { attempts: [], respondedOn: null }) {
-    if (!record(value) || !Array.isArray(value.attempts) || value.attempts.length > 4) throw new Error('Histórico de contato inválido.');
-    const attempts = value.attempts.map((value, index, source) => {
-      day(value);
-      if (index && value < source[index - 1]) throw new Error('As datas das tentativas devem estar em ordem cronológica.');
-      return value;
-    });
+    if (!record(value)) throw new Error('Histórico de contato inválido.');
+    let checks, markedOn;
+    if (own(value, 'checks')) {
+      if (!Array.isArray(value.checks) || value.checks.length !== 4 || Array.from(value.checks).some(v => typeof v !== 'boolean') ||
+          !Array.isArray(value.markedOn) || value.markedOn.length !== 4) throw new Error('Caixas de contato inválidas.');
+      checks = [...value.checks]; markedOn = [...value.markedOn];
+      for (let i = 0; i < 4; i++) {
+        if (markedOn[i] !== null) day(markedOn[i]);
+        if (!checks[i] && markedOn[i] !== null) throw new Error('Data em uma caixa desmarcada.');
+      }
+    } else {
+      if (!Array.isArray(value.attempts) || value.attempts.length > 4) throw new Error('Histórico de contato inválido.');
+      value.attempts.forEach((date, index) => {
+        day(date);
+        if (index && date < value.attempts[index - 1]) throw new Error('Datas antigas fora da ordem cronológica.');
+      });
+      checks = Array.from({ length: 4 }, (_, i) => i < value.attempts.length);
+      markedOn = Array.from({ length: 4 }, (_, i) => value.attempts[i] || null);
+    }
     const respondedOn = value.respondedOn ?? null;
     if (respondedOn !== null) {
       day(respondedOn);
-      if (!attempts.length || respondedOn < attempts.at(-1)) throw new Error('A resposta deve ocorrer após as tentativas registradas.');
+      if (!own(value, 'checks') && (!value.attempts.length || respondedOn < value.attempts.at(-1))) throw new Error('Resposta antiga inválida.');
     }
-    return { attempts, respondedOn };
+    return { checks, markedOn, respondedOn };
   }
 
   function contactInfo(value, date = today()) {
     const result = contact(value); day(date);
-    const count = result.attempts.length;
-    // Each checkbox records an attempt, even when several were made on the same day.
-    // Keep chronological order if the computer clock is behind an existing record.
-    const next = count && count < 4 ? result.attempts.at(-1) : null;
-    const readyOn = count === 4 ? [addDays(result.attempts[0], 7), addDays(result.attempts[3], 1)].sort().at(-1) : null;
-    const canAdd = !result.respondedOn && count < 4 && (!next || date >= next);
-    const ready = !result.respondedOn && !!readyOn && date >= readyOn;
-    const status = result.respondedOn ? 'Usuário respondeu' : ready ? 'Revisar encerramento por falta de comunicação' : readyOn
-      ? `Aguardar até ${displayDate(readyOn)} para revisar encerramento` : count
-        ? canAdd ? 'Próxima tentativa disponível' : `Confira a data do computador: último contato em ${displayDate(next)}` : 'Nenhuma tentativa registrada';
-    return { ...result, count, next, readyOn, canAdd, ready, status };
+    const count = result.checks.filter(Boolean).length;
+    const dates = result.markedOn.filter(Boolean).sort();
+    const firstMarkedOn = dates[0] || null;
+    const elapsedDays = firstMarkedOn ? day(date) - day(firstMarkedOn) : null;
+    const reminder = !result.respondedOn && count === 4 && elapsedDays !== null && elapsedDays >= 7;
+    const status = result.respondedOn ? 'Resposta informada pelo operador' : !count ? 'Nenhuma tentativa marcada' :
+      `${count}/4 tentativas marcadas${elapsedDays !== null ? ` · ${elapsedDays} dias corridos desde a primeira marcação` : ''}${reminder ? ' · Referência de 7 dias atingida; confira o histórico oficial' : ''}`;
+    return { ...result, count, firstMarkedOn, elapsedDays, reminder, status };
   }
 
-  function changeContact(value, operation, date = today()) {
+  function changeContact(value, operation, date = today(), index) {
     const result = contact(value); day(date);
-    if (operation === 'add') {
-      if (!contactInfo(result, date).canAdd) throw new Error(contactInfo(result, date).status);
-      result.attempts.push(date);
+    if (operation === 'toggle') {
+      if (!Number.isInteger(index) || index < 0 || index > 3) throw new Error('Caixa de contato inválida.');
+      result.checks[index] = !result.checks[index];
+      result.markedOn[index] = result.checks[index] ? date : null;
+    } else if (operation === 'add') {
+      const free = result.checks.indexOf(false);
+      if (free < 0) throw new Error('As quatro tentativas já estão marcadas.');
+      result.checks[free] = true; result.markedOn[free] = date;
     } else if (operation === 'undo') {
-      if (!result.attempts.length || result.respondedOn) throw new Error('Desmarque a resposta antes de desfazer uma tentativa.');
-      result.attempts.pop();
+      const last = result.checks.lastIndexOf(true);
+      if (last < 0) throw new Error('Não há tentativa marcada.');
+      result.checks[last] = false; result.markedOn[last] = null;
     } else if (operation === 'respond') {
-      if (!result.attempts.length || result.respondedOn) throw new Error('Não há acompanhamento pendente para registrar uma resposta.');
       result.respondedOn = date;
     } else if (operation === 'resume') result.respondedOn = null;
-    else if (operation === 'clear') return { attempts: [], respondedOn: null };
+    else if (operation === 'clear') return contact();
     else throw new Error('Ação de contato inválida.');
     return contact(result);
   }
@@ -196,12 +211,12 @@ globalThis.AssystData = (() => {
       .map(ticket => {
         const info = contactInfo(state.assyst_contacts?.[ticket]);
         return [ticket, labels.get(state.assyst_ticket_tags[ticket]) || 'Sem tag', `${info.count}/4`,
-          ...Array.from({ length: 4 }, (_, index) => info.attempts[index] ? displayDate(info.attempts[index]) : ''),
+          ...info.markedOn.map(date => date ? displayDate(date) : ''),
           info.respondedOn ? displayDate(info.respondedOn) : '', info.status];
       });
     entries.sort(([a, tagA], [b, tagB]) => tagA.localeCompare(tagB, 'pt-BR', { numeric: true }) ||
       a.localeCompare(b, 'pt-BR', { numeric: true }));
-    const rows = [['Chamado', 'Tag', 'Tentativas', 'Contato 1', 'Contato 2', 'Contato 3', 'Contato 4', 'Resposta informada em', 'Acompanhamento'], ...entries];
+    const rows = [['Chamado', 'Tag', 'Tentativas', 'Marcação 1', 'Marcação 2', 'Marcação 3', 'Marcação 4', 'Resposta informada em', 'Informações de acompanhamento'], ...entries];
     return '\uFEFF' + rows.map(row => row.map(quote).join(';')).join('\r\n') + '\r\n';
   }
 

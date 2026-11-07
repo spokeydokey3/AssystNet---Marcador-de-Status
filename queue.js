@@ -34,6 +34,7 @@
   function context(grid) {
     const wanted = 'chamados atribuidos a mim';
     let ownQueue = false;
+    let ownCounter = false;
     const signatures = [];
     for (const select of document.querySelectorAll('select')) {
       if (select.closest(OWNED) || !shown(select)) continue;
@@ -56,7 +57,10 @@
         const raw = fold(parent.textContent);
         if (raw.length > 220) break;
         const match = raw.match(/exibicao de eventos\s*:?\s*([\d.]+)\s*[-–]\s*([\d.]+)\s*de\s*([\d.]+)/);
-        if (match) totals.add(Number(match[3].replace(/\./g, '')));
+        if (match) {
+          totals.add(Number(match[3].replace(/\./g, '')));
+          if (/\bem\s+chamados atribuidos a mim\b/.test(raw)) ownCounter = true;
+        }
       }
     }
     if (!ownQueue) throw new Error('Abra “Chamados atribuídos a mim” antes de exportar.');
@@ -67,10 +71,40 @@
     const header = headers.find(node => fold(node.textContent).replace(/[()]/g, '') === 'status texto');
     if (!header) throw new Error('Não encontrei a coluna “Status (Texto)”. Não foi gerado um relatório incompleto.');
     const field = [...header.classList].find(name => name.startsWith('field-'));
-    return { total, signature: JSON.stringify(signatures), field, index: headers.indexOf(header) };
+    return { total, signature: JSON.stringify(signatures), field, index: headers.indexOf(header), ownCounter, selectedOwnQueue: signatures.length > 0 };
   }
 
-  async function capture() {
+  function cleanupContext(grid) {
+    let hash = location.hash;
+    try { hash = window.top.location.hash || hash; } catch { /* Use the frame route if top is cross-origin. */ }
+    // Destructive synchronization is limited to the own-queue route observed in this deployment.
+    if (!/^#eventMonitor\/4\/?$/i.test(hash)) throw new Error('Abra a tela completa “Chamados atribuídos a mim” para limpar.');
+    const current = context(grid);
+    if (!current.ownCounter && !current.selectedOwnQueue) throw new Error('O nome da fila não foi confirmado no contador ou seletor. Nada será limpo.');
+    const neutral = value => ['', 'todos', 'todas', 'all', 'qualquer', 'sem filtro', '{}', '[]'].includes(fold(value));
+    for (const node of document.querySelectorAll('input, textarea, select, [role="combobox"]')) {
+      if (node.closest(OWNED)) continue;
+      const hiddenFilter = node.matches('input[type="hidden"]') && /filter|filtro|search|pesquis|query/i.test((node.name || '') + ' ' + node.id);
+      if (!shown(node) && !hiddenFilter) continue;
+      if (node.matches('input[type="password"]')) throw new Error('Confirme o acesso ao AssystNet antes da limpeza.');
+      if (node.matches('select')) {
+        const selected = fold(node.selectedOptions[0]?.textContent || '');
+        if (selected === 'chamados atribuidos a mim') continue;
+        if (!neutral(node.value) && !neutral(selected)) throw new Error('Remova os filtros e seleções adicionais antes da limpeza.');
+      } else if (node.matches('input[type="checkbox"], input[type="radio"]')) {
+        if (node.checked) throw new Error('Desmarque os filtros ou seleções antes da limpeza.');
+      } else if (!node.matches('input[type="button"], input[type="submit"], input[type="reset"]')) {
+        const value = node.value ?? node.getAttribute('aria-valuetext') ?? node.textContent;
+        if (!neutral(value) && fold(value) !== 'chamados atribuidos a mim') throw new Error('Há busca ou filtro preenchido. Nada será limpo.');
+      }
+    }
+    for (const node of document.querySelectorAll('[aria-busy="true"], [role="dialog"][aria-modal="true"], .dgrid-loading, .dgrid-preload-loading, .filter-active, .active-filter, .dgrid-filtered, [data-filter-active="true"]')) {
+      if (!node.closest(OWNED) && shown(node)) throw new Error('A fila está carregando ou tem filtros ativos. Nada será limpo.');
+    }
+    return { ...current, unfiltered: true, scope: JSON.stringify([hash, current.total, current.signature, current.field, current.index]) };
+  }
+
+  async function capture(cleanup = false) {
     if (busy) throw new Error('A leitura da fila já está em andamento.');
     busy = true;
     let scroller, originalTop, grid, initial;
@@ -78,13 +112,13 @@
       const candidates = grids();
       if (candidates.length !== 1) throw new Error('Não encontrei uma única tabela da fila. Recarregue o AssystNet.');
       [grid] = candidates;
-      initial = context(grid);
+      initial = cleanup ? cleanupContext(grid) : context(grid);
       const href = location.href;
       const records = new Map(), positions = new Map();
       const deadline = Date.now() + 45000;
       const assertContext = () => {
         if (!grid.isConnected || location.href !== href) throw new Error('A página mudou durante a leitura. Exporte novamente.');
-        const current = context(grid);
+        const current = cleanup ? cleanupContext(grid) : context(grid);
         if (current.total !== initial.total || current.signature !== initial.signature || current.field !== initial.field || current.index !== initial.index) {
           throw new Error('A fila mudou durante a leitura. Aguarde a atualização e exporte novamente.');
         }
@@ -131,7 +165,8 @@
       const last = collect();
       if (!first.every((ticket, index) => last[index] === ticket)) throw new Error('A fila mudou durante a leitura. Exporte novamente.');
       return { ok: true, complete: true, total: initial.total,
-        tickets: [...records].filter(([, status]) => ['aberto', 'open'].includes(status)).map(([ticket]) => ticket) };
+        tickets: [...records].filter(([, status]) => ['aberto', 'open'].includes(status)).map(([ticket]) => ticket),
+        ...(cleanup ? { queueTickets: [...records.keys()], unfiltered: true, scope: initial.scope } : {}) };
     } finally {
       if (scroller?.isConnected && grid?.isConnected && originalTop !== undefined) scroller.scrollTop = originalTop;
       busy = false;
@@ -144,7 +179,56 @@
       if (grids().length) browser.runtime.sendMessage({ type: 'assyst-tagger', action: 'queueReady', token: message.token }).catch(() => undefined);
       return undefined;
     }
-    if (message.action === 'capture') return capture().catch(error => ({ ok: false, error: error.message }));
+    if (message.action === 'capture') return capture(message.cleanup === true).catch(error => ({ ok: false, error: error.message }));
+    if (message.action === 'verify') {
+      try {
+        const candidates = grids();
+        if (candidates.length !== 1) throw new Error('Fila ambígua.');
+        const info = cleanupContext(candidates[0]);
+        return Promise.resolve({ ok: true, scope: info.scope, total: info.total, unfiltered: true });
+      } catch (error) { return Promise.resolve({ ok: false, error: error.message }); }
+    }
     return undefined;
   });
+
+  let timer = 0, stopped = false, running = false, nextAllowed = 0, ignoreUntil = 0;
+  function scheduleSync() {
+    if (stopped || running || Date.now() < ignoreUntil || document.hidden) return;
+    clearTimeout(timer);
+    timer = setTimeout(async () => {
+      timer = 0;
+      try {
+        const candidates = grids();
+        if (candidates.length !== 1) return;
+        cleanupContext(candidates[0]);
+        running = true; nextAllowed = Date.now() + 30000;
+        await browser.runtime.sendMessage({ type: 'assyst-tagger', action: 'syncQueue', automatic: true });
+      } catch { /* Unsafe or incomplete views never authorize deletion. Manual sync explains the error. */ }
+      finally { running = false; ignoreUntil = Date.now() + 1500; }
+    }, Math.max(1200, nextAllowed - Date.now()));
+  }
+  globalThis.AssystQueueSync = {
+    changed(records) {
+      if (running || busy || Date.now() < ignoreUntil) return;
+      for (const record of records) {
+        const target = record.target.nodeType === 1 ? record.target : record.target.parentElement;
+        if (!target || target.closest(OWNED)) continue;
+        if (record.type === 'childList') {
+          const nodes = [...record.addedNodes, ...record.removedNodes];
+          if (nodes.length && nodes.every(node => node.nodeType === 1 && node.matches(OWNED))) continue;
+        }
+        scheduleSync(); return;
+      }
+    }
+  };
+  const storageChanged = (changes, area) => { if (area === 'local' && 'assyst_auto_sync' in changes) scheduleSync(); };
+  browser.storage.onChanged.addListener(storageChanged);
+  for (const name of ['hashchange', 'popstate']) window.addEventListener(name, scheduleSync);
+  for (const name of ['input', 'change']) document.addEventListener(name, event => { if (!event.target.closest(OWNED)) scheduleSync(); }, true);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) scheduleSync(); });
+  window.addEventListener('pagehide', () => { stopped = true; clearTimeout(timer); browser.storage.onChanged.removeListener(storageChanged); });
+  window.addEventListener('pageshow', event => {
+    if (event.persisted && stopped) { stopped = false; browser.storage.onChanged.addListener(storageChanged); scheduleSync(); }
+  });
+  scheduleSync();
 })();

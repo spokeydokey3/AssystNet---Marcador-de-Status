@@ -64,7 +64,8 @@ function background(initial = {}, options = {}) {
           }
           return undefined;
         }
-        if (typeof options.capture === 'function') return options.capture();
+        if (message.action === 'verify') return typeof options.verify === 'function' ? options.verify(message) : options.verify || { ...options.capture, ok: true };
+        if (typeof options.capture === 'function') return options.capture(message);
         return options.capture || { ok: true, complete: true, total: 0, tickets: [] };
       }
     }

@@ -7,11 +7,11 @@ const reportJobs = new Map();
 
 async function readState() {
   const raw = await browser.storage.local.get(AssystData.KEYS);
-  if (raw.assyst_schema_version !== undefined && ![1, 2].includes(raw.assyst_schema_version)) {
+  if (raw.assyst_schema_version !== undefined && ![1, 2, 3].includes(raw.assyst_schema_version)) {
     throw new Error('Formato de dados não suportado. Atualize a extensão; os dados locais foram preservados.');
   }
   const state = AssystData.normalize(raw);
-  const migrating = raw.assyst_schema_version !== 2;
+  const migrating = raw.assyst_schema_version !== 3;
   const metadata = {};
   if (migrating && raw.assyst_has_upgrade_backup !== true) {
     const previous = Object.fromEntries(['assyst_tags', 'assyst_custom_tags', 'assyst_ticket_tags', 'assyst_contacts']
@@ -22,7 +22,10 @@ async function readState() {
       metadata.assyst_upgrade_backup = { formatVersion: raw.assyst_contacts !== undefined ? 2 : 1, exportedAt: new Date().toISOString(), ...previous };
     }
   }
-  state.assyst_schema_version = 2;
+  state.assyst_schema_version = 3;
+  state.assyst_auto_sync = raw.assyst_auto_sync !== false;
+  state.assyst_last_queue_sync = raw.assyst_last_queue_sync || null;
+  state.assyst_has_cleanup_backup = raw.assyst_has_cleanup_backup === true;
   state.assyst_has_upgrade_backup = raw.assyst_has_upgrade_backup === true || metadata.assyst_has_upgrade_backup === true;
   if (migrating || JSON.stringify(raw.assyst_tags) !== JSON.stringify(state.assyst_tags) ||
       JSON.stringify(raw.assyst_ticket_tags) !== JSON.stringify(state.assyst_ticket_tags) ||
@@ -73,7 +76,7 @@ function isAssyst(url) {
   } catch { return false; }
 }
 
-async function exportQueue(sourceTabId) {
+async function readQueue(sourceTabId, cleanup = false) {
   let tab;
   if (sourceTabId !== undefined) {
     if (!Number.isInteger(sourceTabId) || sourceTabId < 0) throw new Error('A aba de origem é inválida. Reabra a janela a partir da sua fila.');
@@ -91,7 +94,7 @@ async function exportQueue(sourceTabId) {
     catch { /* Frames announce themselves through queueReady messages. */ }
     await new Promise(resolve => setTimeout(resolve, 350));
     if (job.frames.size !== 1) throw new Error('Não encontrei uma única tabela da sua fila. Abra “Chamados atribuídos a mim” e recarregue o AssystNet.');
-    const result = await browser.tabs.sendMessage(tab.id, { type: 'assyst-queue', action: 'capture' },
+    const result = await browser.tabs.sendMessage(tab.id, { type: 'assyst-queue', action: 'capture', cleanup },
       { frameId: [...job.frames][0] });
     if (!result?.ok) throw new Error(result?.error || 'Não foi possível conferir a fila atual.');
     const currentTab = await browser.tabs.get(tab.id);
@@ -99,19 +102,100 @@ async function exportQueue(sourceTabId) {
     if (!Number.isSafeInteger(result.total) || result.total < 0 || result.complete !== true ||
         !Array.isArray(result.tickets) || result.tickets.length > result.total ||
         new Set(result.tickets).size !== result.tickets.length) throw new Error('A fila não foi conferida por completo.');
-    // A long grid scan must not hold the write queue or use stale tag definitions.
-    const operation = queue.then(async () => {
-      const state = await readState();
-      return { ...await download(state, 'csv', false, result.tickets), count: result.tickets.length };
-    });
-    queue = operation.catch(() => undefined);
-    return await operation;
+    if (cleanup) {
+      validateMembership(result);
+      await new Promise(resolve => setTimeout(resolve, 700));
+      const second = await browser.tabs.sendMessage(tab.id, { type: 'assyst-queue', action: 'capture', cleanup: true }, { frameId: [...job.frames][0] });
+      validateMembership(second);
+      if (result.scope !== second.scope || JSON.stringify([...result.queueTickets].sort()) !== JSON.stringify([...second.queueTickets].sort())) {
+        throw new Error('A fila mudou entre as duas leituras. Nada foi limpo.');
+      }
+    }
+    return { result, tab, frameId: [...job.frames][0] };
   } finally { reportJobs.delete(token); }
+}
+
+function validateMembership(result) {
+  if (!result?.ok || !result.complete || result.unfiltered !== true || typeof result.scope !== 'string' ||
+      !Number.isSafeInteger(result.total) || result.total < 0 || !Array.isArray(result.queueTickets) ||
+      result.queueTickets.length !== result.total || new Set(result.queueTickets).size !== result.total ||
+      result.queueTickets.some(id => typeof id !== 'string' || !/^[A-Za-z]*\d+$/.test(id))) {
+    throw new Error(result?.error || 'A fila completa e sem filtros não foi confirmada. Nada foi limpo.');
+  }
+}
+
+function serialized(operation) {
+  const result = queue.then(operation);
+  queue = result.catch(() => undefined);
+  return result;
+}
+
+async function exportQueue(sourceTabId) {
+  const { result } = await readQueue(sourceTabId);
+  return serialized(async () => {
+    const state = await readState();
+    return { ...await download(state, 'csv', false, result.tickets), count: result.tickets.length };
+  });
+}
+
+async function syncQueue(message) {
+  const initial = await serialized(readState);
+  if (message.automatic && !initial.assyst_auto_sync) return { paused: true, state: initial };
+  const { result, tab, frameId } = await readQueue(message.sourceTabId, true);
+  if (!result.total && !message.allowEmpty) return { needsEmptyConfirmation: true, total: 0 };
+  return serialized(async () => {
+    const state = await readState();
+    if (message.automatic && !state.assyst_auto_sync) return { paused: true, state };
+    const currentTab = await browser.tabs.get(tab.id);
+    const final = await browser.tabs.sendMessage(tab.id, { type: 'assyst-queue', action: 'verify' }, { frameId });
+    if (currentTab.url !== tab.url || !final?.ok || final.scope !== result.scope || final.total !== result.total || !final.unfiltered) {
+      throw new Error('A página ou os filtros mudaram. Nada foi limpo.');
+    }
+    const keep = new Set(result.queueTickets);
+    const removed = [...new Set([...Object.keys(state.assyst_ticket_tags), ...Object.keys(state.assyst_contacts)])].filter(id => !keep.has(id));
+    const metadata = {};
+    if (removed.length) {
+      metadata.assyst_cleanup_backup = { ...JSON.parse(AssystData.backup(state)), removedTickets: removed };
+      state.assyst_has_cleanup_backup = true;
+    }
+    for (const id of removed) { delete state.assyst_ticket_tags[id]; delete state.assyst_contacts[id]; }
+    state.assyst_last_queue_sync = { total: result.total, removed: removed.length, at: new Date().toISOString() };
+    state.assyst_revision++;
+    // One write commits the recovery copy and the cleanup together.
+    await browser.storage.local.set({ ...metadata, ...state });
+    return { state, removed: removed.length, total: result.total };
+  });
 }
 
 async function handle(message) {
   const state = await readState();
   if (message.action === 'get') return { state };
+  if (message.action === 'exportCleanupBackup') {
+    const saved = await browser.storage.local.get(['assyst_cleanup_backup']);
+    if (!saved.assyst_cleanup_backup) throw new Error('Não há cópia anterior à limpeza.');
+    return download(saved.assyst_cleanup_backup, 'json', true);
+  }
+  if (message.action === 'restoreCleanup') {
+    const saved = (await browser.storage.local.get(['assyst_cleanup_backup'])).assyst_cleanup_backup;
+    if (!saved || !Array.isArray(saved.removedTickets)) throw new Error('Não há limpeza para desfazer.');
+    const previous = AssystData.parseBackup(saved);
+    let restored = 0;
+    for (const id of saved.removedTickets) {
+      if (Object.hasOwn(state.assyst_ticket_tags, id) || Object.hasOwn(state.assyst_contacts, id)) continue;
+      const tag = previous.assyst_ticket_tags[id];
+      if (tag) {
+        if (!state.assyst_tags.some(item => item.id === tag)) state.assyst_tags.push(previous.assyst_tags.find(item => item.id === tag));
+        state.assyst_ticket_tags[id] = tag;
+      }
+      if (Object.hasOwn(previous.assyst_contacts, id)) state.assyst_contacts[id] = previous.assyst_contacts[id];
+      restored++;
+    }
+    state.assyst_auto_sync = false;
+    state.assyst_has_cleanup_backup = false;
+    state.assyst_revision++;
+    await browser.storage.local.set({ ...state, assyst_cleanup_backup: null });
+    return { state, restored };
+  }
   if (message.action === 'exportUpgradeBackup') {
     const saved = await browser.storage.local.get(['assyst_upgrade_backup']);
     if (!saved.assyst_upgrade_backup) throw new Error('Não há cópia anterior à migração neste perfil.');
@@ -121,7 +205,10 @@ async function handle(message) {
     if (message.format !== 'json') throw new Error('Formato de exportação inválido.');
     return download(state, message.format);
   }
-  if (message.action === 'saveTag' || message.action === 'createAndAssign') {
+  if (message.action === 'setAutoSync') {
+    if (typeof message.enabled !== 'boolean') throw new Error('Configuração inválida.');
+    state.assyst_auto_sync = message.enabled;
+  } else if (message.action === 'saveTag' || message.action === 'createAndAssign') {
     const incoming = { ...message.tag };
     if (!incoming.id) incoming.id = 'TAG_' + crypto.randomUUID();
     const tag = AssystData.tag(incoming);
@@ -146,7 +233,7 @@ async function handle(message) {
       throw new Error('O contato foi alterado em outra janela. Confira o histórico e tente novamente.');
     }
     // Always date contacts in the background: a page cannot spoof or backdate an attempt.
-    state.assyst_contacts[ticket] = AssystData.changeContact(previous, message.operation);
+    state.assyst_contacts[ticket] = AssystData.changeContact(previous, message.operation, AssystData.today(), message.index);
   } else if (message.action === 'deleteTag') {
     state.assyst_tags = state.assyst_tags.filter(tag => tag.id !== message.id);
     for (const [ticket, id] of Object.entries(state.assyst_ticket_tags)) {
@@ -176,6 +263,13 @@ browser.runtime.onMessage.addListener((message, sender) => {
   }
   if (message.action === 'export' && message.format === 'csv') {
     return exportQueue(message.sourceTabId).then(result => ({ ok: true, ...result }), error => ({ ok: false, error: error.message }));
+  }
+  if (message.action === 'syncQueue') {
+    if (sender.tab) {
+      if (!isAssyst(sender.url)) return Promise.resolve({ ok: false, error: 'Origem inválida.' });
+      message = { ...message, sourceTabId: sender.tab.id };
+    }
+    return syncQueue(message).then(result => ({ ok: true, ...result }), error => ({ ok: false, error: error.message }));
   }
   const operation = queue.then(() => handle(message));
   queue = operation.catch(() => undefined);

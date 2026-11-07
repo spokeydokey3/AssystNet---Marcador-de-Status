@@ -1,6 +1,6 @@
 'use strict';
 (() => {
-  const BREADCRUMB = 'span.breadcrumb.no-link-breadcrumb[data-component-tag="breadcrumb-index-2"]';
+  const BREADCRUMB = '.breadcrumb.no-link-breadcrumb, .breadcrumb[data-component-tag]';
   const OWNED = '[data-assyst-ui="detail-controls"]';
   let root = null;
   let breadcrumb = null;
@@ -21,8 +21,8 @@
     if (!ticket) return null;
     const candidates = [...document.querySelectorAll(BREADCRUMB)]
       .filter(node => node.isConnected && !node.closest('[hidden]') && node.getClientRects().length > 0 &&
-        getComputedStyle(node).visibility === 'visible');
-    if (candidates.length !== 1 || candidates[0].textContent.trim() !== ticket) return null;
+        getComputedStyle(node).visibility === 'visible' && node.textContent.trim() === ticket);
+    if (candidates.length !== 1) return null;
     return { ticket, node: candidates[0] };
   }
 

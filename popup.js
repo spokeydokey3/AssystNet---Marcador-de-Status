@@ -42,7 +42,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   function renderTags() {
     if (!state) return;
     $('tagCount').textContent = `${state.assyst_tags.length} tags`;
-    $('ticketCount').textContent = `${Object.keys(state.assyst_ticket_tags).length} chamados marcados`;
+    $('ticketCount').textContent = `${Object.keys(state.assyst_ticket_tags).length} com tag`;
+    $('autoSync').checked = state.assyst_auto_sync;
+    const sync = state.assyst_last_queue_sync;
+    $('queueCount').textContent = sync ? `Última fila: ${sync.total}` : 'Fila ainda não conferida';
+    $('queueStatus').textContent = sync ? `Última conferência: ${sync.total} chamado(s), ${sync.removed} registro(s) antigo(s) removido(s), em ${new Date(sync.at).toLocaleString('pt-BR')}.` : 'Abra sua fila completa e atualizada no AssystNet. Durante buscas e carregamento, nenhuma marcação é apagada.';
+    $('btnRestoreCleanup').hidden = !state.assyst_has_cleanup_backup;
+    $('btnCleanupBackup').hidden = !state.assyst_has_cleanup_backup;
     $('btnUpgradeBackup').hidden = !state.assyst_has_upgrade_backup;
     renderTickets();
     const usage = new Map();
@@ -87,7 +93,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const labels = new Map(state.assyst_tags.map(tag => [tag.id, tag.label]));
     const search = $('ticketSearch').value.trim().toLocaleLowerCase('pt-BR');
     const entries = [...new Set([...Object.keys(state.assyst_ticket_tags),
-      ...Object.keys(state.assyst_contacts).filter(ticket => state.assyst_contacts[ticket].attempts.length)])]
+      ...Object.keys(state.assyst_contacts).filter(ticket => { const info = AssystData.contactInfo(state.assyst_contacts[ticket]); return info.count || info.respondedOn; })])]
       .map(ticket => [ticket, state.assyst_ticket_tags[ticket]])
       .filter(([ticket, id]) => (ticket + ' ' + (labels.get(id) || id || 'Sem tag')).toLocaleLowerCase('pt-BR').includes(search))
       .sort(([a], [b]) => a.localeCompare(b, 'pt-BR', { numeric: true }));
@@ -97,7 +103,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const label = document.createElement('span'); label.className = 'tag-badge';
       const contact = AssystData.contactInfo(state.assyst_contacts[ticket]);
       label.textContent = `${ticket} · ${labels.get(id) || id || 'Sem tag'}${contact.count ? ` · Contato ${contact.count}/4` : ''}`;
-      if (contact.count) label.title = contact.attempts.map((date, index) => `${index + 1}ª: ${AssystData.displayDate(date)}`).join(' · ') + '. ' + contact.status;
+      if (contact.count) label.title = contact.markedOn.map((date, index) => date ? `${index + 1}ª marcação: ${AssystData.displayDate(date)}` : '').filter(Boolean).join(' · ') + '. ' + contact.status;
       item.append(label);
       if (contact.count) {
         const clear = document.createElement('button'); clear.type = 'button'; clear.className = 'btn-icon danger';
@@ -215,7 +221,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     pendingImport = AssystData.parseBackup(await file.text());
     const count = Object.keys(pendingImport.assyst_ticket_tags).length;
     const overlap = Object.keys(pendingImport.assyst_ticket_tags).filter(ticket => Object.prototype.hasOwnProperty.call(state.assyst_ticket_tags, ticket)).length;
-    const contacts = Object.values(pendingImport.assyst_contacts).filter(value => value.attempts.length).length;
+    const contacts = Object.values(pendingImport.assyst_contacts).filter(value => AssystData.contactInfo(value).count).length;
     $('importSummary').textContent = `${file.name}: ${pendingImport.assyst_tags.length} tags, ${count} chamados marcados e ${contacts} histórico(s) de contato. ${overlap} chamado(s) já existem neste computador.`;
     $('importMode').value = 'merge'; explainImport(); $('importPreview').hidden = false;
     $('importPreview').scrollIntoView({ block: 'nearest' });
@@ -232,10 +238,31 @@ document.addEventListener('DOMContentLoaded', async () => {
   }));
 
   browser.storage.onChanged.addListener((changes, area) => {
-    if (area === 'local' && ['assyst_tags', 'assyst_ticket_tags', 'assyst_contacts'].some(key => key in changes)) {
+    if (area === 'local' && AssystData.KEYS.some(key => key in changes)) {
       request('get').catch(error => feedback(error.message, true));
     }
   });
+  $('autoSync').addEventListener('change', () => run(async () => {
+    await request('setAutoSync', { enabled: $('autoSync').checked });
+    feedback(state.assyst_auto_sync ? 'Limpeza automática ativada para a fila completa e sem filtros.' : 'Limpeza automática pausada.');
+  }));
+  $('btnSync').addEventListener('click', () => run(async () => {
+    feedback('Conferindo a fila duas vezes. Aguarde sem alterar a página.');
+    const payload = sourceTabId !== undefined ? { sourceTabId } : {};
+    let result = await request('syncQueue', payload);
+    if (result.needsEmptyConfirmation) {
+      if (!confirm('A fila foi lida como vazia. Deseja limpar todas as marcações e contatos salvos? Será guardada uma cópia para recuperação.')) return;
+      result = await request('syncQueue', { ...payload, allowEmpty: true });
+    }
+    feedback(`Fila conferida: ${result.total} chamado(s). ${result.removed} registro(s) antigo(s) removido(s).`);
+  }));
+  $('btnRestoreCleanup').addEventListener('click', () => run(async () => {
+    const result = await request('restoreCleanup');
+    feedback(`${result.restored} registro(s) recuperado(s). A limpeza automática foi pausada para evitar nova exclusão. Confira a fila antes de reativar.`);
+  }));
+  $('btnCleanupBackup').addEventListener('click', () => run(async () => {
+    await request('exportCleanupBackup'); feedback('Cópia anterior à última limpeza enviada aos downloads.');
+  }));
   if (transferPage) {
     document.body.classList.add('transfer-page'); $('btnTransferTab').hidden = true;
     document.querySelector('h1').textContent = 'Transferir minhas marcações';

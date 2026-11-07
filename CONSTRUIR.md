@@ -1,115 +1,80 @@
-# Reprodução do pacote enviado à Mozilla — versão 3.5.0
+# Reprodução dos pacotes — 3.6.0
 
-Este pacote contém as fontes legíveis e mantidas diretamente: JavaScript, HTML e CSS.
-`build.py` produz ZIPs com metadados fixos. Firefox contém nove arquivos de execução. Chrome
-contém os nove arquivos compartilhados e cinco adaptadores; o script cria seu manifesto
-específico e inclui o adaptador antes dos scripts do popup. Os arquivos JavaScript são copiados
-sem transformação.
-Não transpila, concatena, minimiza ou ofusca JavaScript. Não há bibliotecas externas,
-instalação de npm, dependências de produção, acesso à rede ou credenciais durante a construção.
+As fontes legíveis são mantidas diretamente. O pacote Firefox contém nove arquivos na raiz:
+manifest.json, data.js, background.js, queue.js, content.js, popup.html, popup.css, popup.js e detail.js.
+`build.py` copia esses bytes sem transformação e fixa os metadados ZIP. Não há transpilação,
+concatenação, minificação, bibliotecas externas ou acesso à rede durante a construção.
 
-## Selecionar o navegador
-
-```sh
-python3 build.py --browser chrome
-python3 build.py --browser firefox
-python3 build.py --sources
-```
-
-Os resultados são `releases/AssystNet-3.5.0-chrome.zip`,
-`releases/AssystNet-3.5.0-submissao.zip` (Firefox) e
-`releases/AssystNet-3.5.0-fontes.zip` (fontes compartilhadas).
-Os passos detalhados abaixo usam o Firefox, que é o padrão. Para reproduzir o Chrome,
-acrescente `--browser chrome` aos comandos, inclusive ao usar `--verify`.
-
-```sh
-python3 build.py --browser chrome --verify /caminho/AssystNet-3.5.0-chrome.zip
-```
-
-## Sistema operacional e programas
+## Requisitos e instalação
 
 - Windows 10/11, Linux ou macOS, com permissão para escrever na pasta extraída.
-- Python **3.12 ou posterior**. Construção e reprodução verificadas em Linux com Python **3.12.14**.
-- Nenhum outro programa é necessário para construir o ZIP. Node e Firefox não são requisitos de construção.
+- Python 3.12 ou posterior. Testado em Linux com Python 3.12.14.
+- Instale pelo site oficial https://www.python.org/downloads/ ou pelo gerenciador do sistema.
+  Windows: habilite o Python Launcher; um instalador da série 3.12 permite usar `py -3.12`.
+  Debian/Ubuntu com Python 3.12 disponível: `sudo apt-get update` e `sudo apt-get install python3`.
+  Confira a versão antes de construir. Não é necessário Node, npm, Firefox ou SDK para o ZIP.
 
-Instalação do Python:
+## Passos completos para reproduzir o Firefox
 
-- Windows/macOS: use o instalador oficial em https://www.python.org/downloads/. No Windows,
-  uma instalação Python 3.12 com o Python Launcher permite executar `py -3.12`.
-  O instalador 3.12.10 também atende ao requisito da série 3.12.
-- Debian/Ubuntu com Python 3.12 disponível: `sudo apt-get update` e `sudo apt-get install python3`.
-  Confira a versão; em outros sistemas use o pacote Python 3.12+ do sistema ou o instalador oficial.
-
-## Passos completos
-
-1. Extraia `AssystNet-3.5.0-fontes.zip` preservando todos os arquivos.
+1. Extraia `AssystNet-3.6.0-fontes.zip`.
 2. Abra um terminal na pasta que contém `manifest.json` e `build.py`.
-3. Confira o Python e execute o único passo técnico de construção:
-
-Linux/macOS:
+3. Execute:
 
 ```sh
 python3 --version
-python3 build.py
+python3 build.py --browser firefox
 ```
 
-Windows PowerShell:
+No Windows com Python 3.12:
 
 ```powershell
 py -3.12 --version
-py -3.12 build.py
+py -3.12 build.py --browser firefox
 ```
 
-Se instalou uma versão mais recente no Windows, use o seletor correspondente,
-por exemplo `py -3.13`, ou `python` quando configurado pelo instalador.
-
-4. O resultado é `releases/AssystNet-3.5.0-submissao.zip`. O script imprime seu SHA-256.
-5. Para conferir uma cópia do ZIP enviado, compare os bytes, usando o caminho desse arquivo:
+4. O resultado é `releases/AssystNet-3.6.0-submissao.zip`.
+5. O SHA-256 é impresso pelo script e registrado em `REPRODUCAO.txt`. Para comparar com o ZIP enviado:
 
 ```sh
-python3 build.py --verify /caminho/AssystNet-3.5.0-submissao.zip
+python3 build.py --browser firefox --verify /caminho/AssystNet-3.6.0-submissao.zip
 ```
 
-No Windows use `py -3.12 build.py --verify "C:\caminho\AssystNet-3.5.0-submissao.zip"`.
-O SHA-256 de referência está em `REPRODUCAO.txt`. O ZIP usa ordem de arquivos,
-datas, permissões e método de armazenamento fixos. Os bytes das fontes não são alterados.
+No Windows, use `py -3.12` no lugar de `python3` e informe o caminho local entre aspas.
+A comparação é byte a byte. Datas, ordem dos arquivos e permissões ZIP são fixas.
+
+O comando `python3 build.py --sources` empacota as fontes, testes e documentação. O projeto
+também conserva `--browser chrome`, que gera manifesto Chrome e inclui seus adaptadores no
+popup e nos content scripts; os JavaScripts são copiados sem alteração. Esse modo não faz parte
+do pacote Firefox nem adiciona permissões Chrome a ele. Esta entrega não distribui um novo Chrome.
 
 ## Validação opcional
 
-Os testes nativos requerem Node.js 24 (testado com 24.19.0), instalável em https://nodejs.org/.
-Não instalam pacotes nem participam da construção:
+Os 53 testes de dados/background usam somente Node.js 24 (testado em 24.19.0), instalável em
+https://nodejs.org/. Execute:
 
 ```sh
 node --test tests/*.test.cjs
 ```
 
-Validação desta entrega: 46 testes automatizados de dados, background e adaptadores Chrome com APIs simuladas.
-O script opcional `tests/chrome-browser.cjs` usa Playwright 1.64.1 e Chromium 151 para
-exercitar a interface e URLs Blob, com APIs de extensão simuladas. Essas ferramentas
-não são incluídas nos pacotes e não são necessárias à construção.
-A instalação nativa da extensão no navegador deste ambiente foi bloqueada por política
-administrativa; precisa ser validada no Chrome da equipe e no AssystNet real.
-O pacote Firefox foi validado por web-ext 10.8.0 sem erros, avisos ou notificações.
-
-## Teste opcional da interface
-
-Instale Playwright 1.64.1 em uma pasta de ferramentas fora do projeto e execute
-`tests/chrome-browser.cjs`, apontando `ASSYST_PLAYWRIGHT_MODULE` para esse módulo e
-`ASSYST_CHROMIUM_PATH` para um Chromium instalado. Exemplo Linux:
+Os testes DOM e Chromium são adicionais, com APIs WebExtension simuladas. Instale as ferramentas
+em uma pasta externa ao projeto, sem incluir node_modules no pacote:
 
 ```sh
-npm install --prefix /tmp/assyst-tools --no-audit --no-fund playwright@1.64.1
+npm install --prefix /tmp/assyst-tools --no-audit --no-fund jsdom@26.1.0 playwright@1.64.1 web-ext@10.8.0
+ASSYST_JSDOM_MODULE=/tmp/assyst-tools/node_modules/jsdom node --test tests/dom.cjs
 ASSYST_PLAYWRIGHT_MODULE=/tmp/assyst-tools/node_modules/playwright ASSYST_CHROMIUM_PATH=/usr/bin/chromium node tests/chrome-browser.cjs
 ```
 
-## Arquivos para o portal
+Os caminhos e a sintaxe das variáveis acima são exemplos Linux/macOS. O Chromium deve estar
+instalado para o último comando; ele não é necessário para construir o pacote. Veja VALIDACAO.md
+para os resultados e limites. Para lint, extraia o ZIP Firefox em uma pasta e execute
+`web-ext lint --source-dir /caminho/da/pasta` com web-ext 10.8.0.
 
-- `AssystNet-3.5.0-chrome.zip`: instalação de teste ou envio à Chrome Web Store; veja CHROME.md.
-- `AssystNet-3.5.0-submissao.zip`: pacote exclusivo do Firefox para a Mozilla.
-- `AssystNet-3.5.0-fontes.zip`: envie no campo **Enviar código-fonte** dessa mesma versão.
+## Arquivos para a Mozilla
 
-O ZIP de fontes inclui instruções, testes e script. O ZIP Firefox contém nove arquivos na raiz; o Chrome contém
-quatorze arquivos, incluindo a subpasta `chrome/`. Não contém backups pessoais, dados de chamados, credenciais,
-arquivos do Git, ferramentas de desenvolvimento ou versões anteriores.
+- `AssystNet-3.6.0-submissao.zip`: nova versão da extensão.
+- `AssystNet-3.6.0-fontes.zip`: campo **Enviar código-fonte** da mesma submissão 3.6.0.
 
-Referência oficial: https://extensionworkshop.com/documentation/publish/source-code-submission/
+O ZIP de execução não inclui testes, bibliotecas, ferramentas, dados reais de chamados,
+credenciais ou versões anteriores. O ZIP de fontes inclui o necessário para construir e conferir.
+Referência: https://extensionworkshop.com/documentation/publish/source-code-submission/

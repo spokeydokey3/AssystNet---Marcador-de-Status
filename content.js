@@ -159,13 +159,12 @@
     host.title = `Contatos do chamado ${ticket}: ${info.count}/4. ${info.status}`;
     const group = host.shadowRoot.querySelector('.contacts');
     group.setAttribute('aria-label', host.title);
-    group.dataset.state = info.respondedOn ? 'responded' : info.ready ? 'ready' : 'pending';
+    group.dataset.state = info.respondedOn ? 'responded' : info.reminder ? 'ready' : 'pending';
     for (const [index, checkbox] of [...host.shadowRoot.querySelectorAll('input')].entries()) {
-      const checked = index < info.count;
+      const checked = info.checks[index];
       checkbox.checked = checked;
-      checkbox.disabled = busy || !!info.respondedOn || (checked ? index !== info.count - 1 : index !== info.count || !info.canAdd);
-      const explanation = checked ? `Registrada em ${AssystData.displayDate(info.attempts[index])}${index === info.count - 1 && !info.respondedOn ? '. Desmarque para desfazer.' : ''}`
-        : index === info.count && info.canAdd ? 'Marque após realizar o contato de hoje.' : info.status;
+      checkbox.disabled = busy;
+      const explanation = checked ? `Marcada${info.markedOn[index] ? ` em ${AssystData.displayDate(info.markedOn[index])}` : ''}. Clique para desmarcar.` : 'Clique para marcar. Data e prazo são apenas informativos.';
       checkbox.title = `${index + 1}ª tentativa. ${explanation}`;
       checkbox.setAttribute('aria-label', `${index + 1}ª tentativa do chamado ${ticket}. ${explanation}`);
     }
@@ -177,7 +176,7 @@
     }
   }
 
-  async function changeContact(ticket, operation, opener) {
+  async function changeContact(ticket, operation, opener, index) {
     if (globalThis.AssystDetailView && !globalThis.AssystDetailView.canEdit(opener, ticket)) {
       updateContactControls(ticket);
       showError('Aguarde o carregamento do chamado antes de registrar contatos.');
@@ -186,12 +185,12 @@
     if (pendingContacts.has(ticket)) return;
     const expected = AssystData.contact(state.assyst_contacts?.[ticket]);
     let value;
-    try { value = AssystData.changeContact(expected, operation); }
+    try { value = AssystData.changeContact(expected, operation, AssystData.today(), index); }
     catch (error) { updateContactControls(ticket); showError(error.message); return; }
     pendingContacts.set(ticket, { value });
     // Apply immediately; observers and storage events may only confirm or roll back this state.
     updateContactControls(ticket);
-    try { await request('contact', { ticket, operation, expected }); }
+    try { await request('contact', { ticket, operation, expected, index }); }
     catch (error) {
       try { await request('get'); } catch { /* Retain the last confirmed state on storage failure. */ }
       showError(error.message);
@@ -218,15 +217,10 @@
       const checkbox = element('input', undefined, group); checkbox.type = 'checkbox';
       checkbox.addEventListener('change', () => {
         const ticket = host.dataset.ticketId;
-        const count = contactFor(ticket).attempts.length;
         // Native checkboxes toggle before this handler; render from confirmed state on cancellation.
         host.dataset.rendered = '';
         if (pendingContacts.has(ticket)) { renderContacts(host); return; }
-        if (index < count) {
-          renderContacts(host);
-          if (!confirm(`Desfazer a última tentativa de contato do chamado ${ticket}?`)) return;
-          changeContact(ticket, 'undo', host);
-        } else changeContact(ticket, 'add', host);
+        changeContact(ticket, 'toggle', host, index);
       });
     }
     const details = element('button', '⋯', group); details.type = 'button'; details.title = 'Ver histórico e informar resposta';
@@ -245,11 +239,11 @@
     if (!panel) return;
     const info = AssystData.contactInfo(contactFor(ticket));
     element('p', info.status, panel.box);
-    element('p', 'É possível marcar até quatro tentativas no mesmo dia. Cada marcação recebe a data de hoje, inclusive para contatos anteriores. O aviso de revisão exige sete dias desde a primeira marcação e o dia seguinte à quarta, sem resposta informada.', panel.box);
-    for (const [index, date] of info.attempts.entries()) element('p', `${index + 1}ª tentativa: ${AssystData.displayDate(date)}`, panel.box);
+    element('p', 'Marque e desmarque livremente. Datas são da marcação, não necessariamente do contato. Dias corridos e a referência de 7 dias são apenas informativos; confira fins de semana, feriados e o histórico oficial do chamado.', panel.box);
+    for (const [index, checked] of info.checks.entries()) if (checked) element('p', `${index + 1}ª caixa marcada${info.markedOn[index] ? ` em ${AssystData.displayDate(info.markedOn[index])}` : ' (sem data)'}`, panel.box);
     if (info.respondedOn) element('p', `Resposta informada em ${AssystData.displayDate(info.respondedOn)}`, panel.box);
     const actions = element('div', undefined, panel.box); actions.className = 'actions';
-    if (info.count) {
+    if (info.count || info.respondedOn) {
       const response = element('button', info.respondedOn ? 'Desmarcar resposta' : 'Usuário respondeu', actions);
       response.type = 'button'; response.disabled = pendingContacts.has(ticket);
       response.addEventListener('click', () => { panel.close(); changeContact(ticket, info.respondedOn ? 'resume' : 'respond', opener); });
@@ -423,6 +417,7 @@
     }
     schedule();
     globalThis.AssystDetailView?.nativeChanged(records);
+    globalThis.AssystQueueSync?.changed(records);
   });
 
   function onStorage(changes, area) {

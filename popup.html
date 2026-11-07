@@ -11,9 +11,18 @@
     <span class="eyebrow">ASSYSTNET</span>
     <h1>Meus marcadores</h1>
     <p>Organize os chamados e leve suas marcações e contatos com você.</p>
-    <div class="stats"><span id="tagCount">0 tags</span><span id="ticketCount">0 chamados marcados</span></div>
+    <div class="stats"><span id="tagCount">0 tags</span><span id="ticketCount">0 com tag</span><span id="queueCount">Fila ainda não conferida</span></div>
   </header>
   <main>
+    <section class="card" aria-labelledby="syncTitle">
+      <h2 id="syncTitle">Manter somente minha fila</h2>
+      <label><input type="checkbox" id="autoSync"> Limpar automaticamente ao conferir a fila</label>
+      <p class="help">Ao abrir “Chamados atribuídos a mim”, a extensão percorre a fila sem filtros e confere duas leituras completas. Tags aplicadas e contatos de chamados ausentes são removidos; as definições das tags continuam disponíveis.</p>
+      <p class="help" id="queueStatus">Abra sua fila completa e atualizada no AssystNet.</p>
+      <button id="btnSync">Conferir e limpar agora</button>
+      <button id="btnRestoreCleanup" class="text-button" hidden>Desfazer a última limpeza e pausar</button>
+      <button id="btnCleanupBackup" class="text-button" hidden>Baixar cópia anterior à limpeza</button>
+    </section>
     <section aria-labelledby="tagsTitle">
       <h2 id="tagsTitle">Suas tags</h2>
       <label class="sr-only" for="tagSearch">Buscar tag</label>
@@ -52,7 +61,7 @@
       <h2 id="reportTitle">Relatório da minha fila atual</h2>
       <p class="help">Abra “Chamados atribuídos a mim”, retire filtros de busca, atualize a fila no AssystNet e exporte pelo ícone da extensão nessa aba. A tabela será percorrida automaticamente; aguarde sem alterar a fila.</p>
       <button id="btnCSV" class="primary">Exportar minha fila atual (CSV)</button>
-      <p class="help">Somente chamados com status Aberto na fila conferida, ordenados por tag e número. Inclui “Sem tag”, as quatro datas de contato e a situação do acompanhamento. Se o total não puder ser conferido, a exportação será interrompida.</p>
+      <p class="help">Somente chamados com status Aberto na fila conferida, ordenados por tag e número. Inclui “Sem tag”, as datas das marcações e informações de acompanhamento. Se o total não puder ser conferido, a exportação será interrompida.</p>
     </section>
     <section id="backupSection" class="card" aria-labelledby="backupTitle">
       <h2 id="backupTitle">Troca de computador</h2>
@@ -61,7 +70,7 @@
         <button id="btnExport" class="primary">Salvar backup JSON</button>
         <button id="btnImport">Importar backup JSON</button>
       </div>
-      <p class="help">O backup inclui todas as tags, marcações e datas de contato salvas, inclusive de chamados que saíram da fila. Use JSON para restaurar os dados; o CSV é um relatório. Históricos com tentativas no mesmo dia precisam da versão 3.4.1 ou posterior.</p>
+      <p class="help">O JSON inclui todas as tags e os registros ainda salvos após as limpezas. A cópia anterior à limpeza é separada. Backups com caixas independentes exigem a versão 3.6.0 ou posterior; os formatos antigos continuam aceitos.</p>
       <button id="btnTransferTab" class="text-button">Abrir transferência em uma janela</button>
       <button id="btnUpgradeBackup" class="text-button" hidden>Salvar cópia anterior à migração</button>
       <input type="file" id="fileInput" accept=".json,application/json" hidden>
