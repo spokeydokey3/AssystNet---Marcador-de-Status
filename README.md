@@ -1,9 +1,9 @@
-# AssystNet · Marcador de Status — Firefox 3.6.0
+# AssystNet · Marcador de Status — Firefox e Chrome 3.6.0
 
 Extensão Manifest V3, JavaScript/HTML/CSS puros, sem frameworks, bundlers ou dependências
 de execução. Os dados ficam exclusivamente em `browser.storage.local`, no perfil do navegador.
-Esta entrega atualiza o Firefox. A edição Chrome publicada anteriormente continua na 3.5.0;
-o projeto mantém os adaptadores Chrome e o código compartilhado para futuras entregas.
+As edições Firefox e Chrome 3.6.0 usam o mesmo código de dados, interface e fila. Os manifestos
+e downloads têm adaptação por navegador. Veja CHROME.md para atualizar a instalação Chrome.
 
 ## Marcações em qualquer página de chamado
 
@@ -56,7 +56,7 @@ não substituem uma instalação permanente assinada pela Mozilla.
 A migração para o esquema 3 preserva tags, tentativas e datas anteriores. Backups sem versão,
 v1 e v2 continuam aceitos. O formato JSON v3 preserva quais caixas estão marcadas, inclusive
 posições intermediárias. Para importar um backup v3, o destino precisa da versão 3.6.0 ou posterior;
-a edição Chrome 3.5.0 não lê esse formato. Preferências de limpeza e cópias de recuperação não
+a edição Chrome 3.5.0 não lê esse formato; atualize para Chrome 3.6.0 para trocar JSON nos dois sentidos. Preferências de limpeza e cópias de recuperação não
 são transferidas no JSON normal. Importe backups pela janela de transferência, confira a prévia
 e escolha Mesclar ou Substituir; este último modo exige confirmação.
 

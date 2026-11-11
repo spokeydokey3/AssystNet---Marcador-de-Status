@@ -23,7 +23,8 @@ function background(initial = {}, options = {}) {
   const storageListeners = new Set();
   const tab = options.tab || { id: 7, url: 'https://cati.tjce.jus.br/assystnet/#eventMonitor/4' };
   const browser = {
-    runtime: { id: 'test@assyst', onMessage: { addListener(fn) { listener = fn; } } },
+    runtime: { id: 'test@assyst', getURL: name => 'chrome-extension://test/' + name,
+      sendMessage() { return Promise.resolve(); }, onMessage: { addListener(fn) { listener = fn; } } },
     storage: {
       local: {
         async get(keys) {
@@ -60,7 +61,7 @@ function background(initial = {}, options = {}) {
           for (const frameId of options.frames || [0]) {
             await listener({ type: 'assyst-tagger', action: 'queueReady', token: message.token },
               { id: browser.runtime.id, tab: options.sourceTab?.id === id ? options.sourceTab : tab,
-                frameId, url: options.sourceTab?.id === id ? options.sourceTab.url : tab.url });
+                frameId, url: options.sourceTab?.id === id ? options.sourceTab.url : tab.url }, () => {});
           }
           return undefined;
         }
@@ -78,10 +79,21 @@ function background(initial = {}, options = {}) {
     constructor(...args) { super(...(args.length ? args : [options.now || Date.now()])); }
     static now() { return options.now ? new Date(options.now).getTime() : Date.now(); }
   }
-  const context = vm.createContext({ browser, crypto: webcrypto, Blob, URL: TestURL, Date: TestDate, setTimeout,
+  const context = vm.createContext({ browser, chrome: options.chrome ? browser : undefined, crypto: webcrypto, Blob, URL: TestURL, Date: TestDate, setTimeout,
     AssystDownloads: options.downloadBridge });
-  for (const file of ['data.js', 'background.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context);
-  const send = (action, payload = {}, sender = { id: browser.runtime.id }) => listener({ type: 'assyst-tagger', action, ...payload }, sender);
+  const sourceRoot = options.sourceRoot || root;
+  const scripts = options.chrome ? ['chrome/compat.js', 'data.js', 'background.js'] : ['data.js', 'background.js'];
+  for (const file of scripts) vm.runInContext(fs.readFileSync(path.join(sourceRoot, file), 'utf8'), context);
+  const send = (action, payload = {}, sender = { id: browser.runtime.id }) => {
+    const message = { type: 'assyst-tagger', action, ...payload };
+    if (!options.chrome) return listener(message, sender);
+    // Native Chrome listeners keep the message port open with true and reply via a callback.
+    return new Promise(resolve => {
+      let responded = false;
+      const keep = listener(message, sender, value => { responded = true; resolve(value); });
+      if (keep !== true && !responded) resolve(undefined);
+    });
+  };
   return { send, browser, downloads, revoked, read: () => clone(stored),
     failWrite() { failNextWrite = true; }, complete(id) { downloadListener({ id, state: { current: 'complete' } }); } };
 }

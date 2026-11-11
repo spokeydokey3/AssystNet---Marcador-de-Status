@@ -36,7 +36,7 @@ Changes:
   is performed from individual ticket pages or partial visible rows.
 - CSV uses only open references from a fresh scan, rather than historic storage.
 
-Testing: 53 automated Node tests, seven simulated-DOM scenarios and four Chromium
+Testing: 57 automated Node tests (including four Chrome/Firefox portability tests), seven simulated-DOM scenarios and four Chromium
 interface/Blob checks with simulated extension APIs passed. Firefox ZIP web-ext
 10.8.0 lint: zero errors, warnings and notices. Firefox/live institutional integration
 must still be tested by an authorized operator. Filter detection depends on the host DOM.

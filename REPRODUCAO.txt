@@ -1,7 +1,14 @@
 Version: 3.6.0
-Firefox: AssystNet-3.6.0-submissao.zip
+Environment: Linux, Python 3.12.14
+
+AssystNet-3.6.0-submissao.zip
 SHA256: 5393b7879b2c272d84abe6d4f57c0fbb46d7c97e7e82ad24a6b35303d0c4fdf4
 Build: python3 build.py --browser firefox
-Environment: Linux, Python 3.12.14
-No network or third-party build dependencies. Runtime files are copied unchanged.
-See CONSTRUIR.md and VALIDACAO.md.
+
+AssystNet-3.6.0-chrome.zip
+SHA256: 2cae22b4f151c5434a52d093400ae5774dce58c2b6ab7497f2506caf04b72a4e
+Build: python3 build.py --browser chrome
+
+Both packages use identical shared JavaScript and the same JSON v3 format.
+Chrome writes its own manifest and includes a compatibility script in popup.html.
+No third-party runtime/build dependencies. See CONSTRUIR.md and VALIDACAO.md.

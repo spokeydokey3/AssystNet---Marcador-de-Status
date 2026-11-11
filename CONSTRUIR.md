@@ -44,12 +44,26 @@ A comparação é byte a byte. Datas, ordem dos arquivos e permissões ZIP são 
 
 O comando `python3 build.py --sources` empacota as fontes, testes e documentação. O projeto
 também conserva `--browser chrome`, que gera manifesto Chrome e inclui seus adaptadores no
-popup e nos content scripts; os JavaScripts são copiados sem alteração. Esse modo não faz parte
-do pacote Firefox nem adiciona permissões Chrome a ele. Esta entrega não distribui um novo Chrome.
+popup e nos content scripts; os JavaScripts são copiados sem alteração. Esse modo não adiciona
+permissões Chrome ao Firefox. Para construir esta atualização Chrome, execute:
+
+```sh
+python3 build.py --browser chrome
+```
+
+O resultado é `releases/AssystNet-3.6.0-chrome.zip`. Para reproduzir e comparar os bytes:
+
+```sh
+python3 build.py --browser chrome --verify /caminho/AssystNet-3.6.0-chrome.zip
+```
+
+Esta entrega inclui `AssystNet-3.6.0-chrome-fontes.zip`, com os fontes compartilhados. Ele pode
+ser reproduzido por `python3 build.py --sources --output releases/AssystNet-3.6.0-chrome-fontes.zip`.
+O pacote Chrome usa os mesmos serializadores e formato JSON v3 do Firefox 3.6.0.
 
 ## Validação opcional
 
-Os 53 testes de dados/background usam somente Node.js 24 (testado em 24.19.0), instalável em
+Os 57 testes de dados/background usam somente Node.js 24 (testado em 24.19.0), instalável em
 https://nodejs.org/. Execute:
 
 ```sh
@@ -70,10 +84,12 @@ instalado para o último comando; ele não é necessário para construir o pacot
 para os resultados e limites. Para lint, extraia o ZIP Firefox em uma pasta e execute
 `web-ext lint --source-dir /caminho/da/pasta` com web-ext 10.8.0.
 
-## Arquivos para a Mozilla
+## Arquivos para distribuição
 
 - `AssystNet-3.6.0-submissao.zip`: nova versão da extensão.
 - `AssystNet-3.6.0-fontes.zip`: campo **Enviar código-fonte** da mesma submissão 3.6.0.
+- `AssystNet-3.6.0-chrome.zip`: pacote Chrome para teste e envio como atualização no cadastro existente da Chrome Web Store.
+- `AssystNet-3.6.0-chrome-fontes.zip`: fontes compartilhados e documentação desta entrega Chrome.
 
 O ZIP de execução não inclui testes, bibliotecas, ferramentas, dados reais de chamados,
 credenciais ou versões anteriores. O ZIP de fontes inclui o necessário para construir e conferir.
