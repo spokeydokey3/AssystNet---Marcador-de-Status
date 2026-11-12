@@ -5,6 +5,8 @@
   const fold = text => String(text).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
   const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
   let busy = false;
+  let lastCaptureEndedAt = -Infinity;
+  let probeLeaseUntil = -Infinity;
 
   function shown(node) {
     for (let current = node; current && current !== document.documentElement; current = current.parentElement) {
@@ -105,6 +107,7 @@
   }
 
   async function capture(cleanup = false) {
+    if (globalThis.AssystAutoRefresh?.isRefreshing()) throw new Error('Aguarde a atualização da lista antes de conferir a fila.');
     if (busy) throw new Error('A leitura da fila já está em andamento.');
     busy = true;
     let scroller, originalTop, grid, initial;
@@ -170,18 +173,23 @@
     } finally {
       if (scroller?.isConnected && grid?.isConnected && originalTop !== undefined) scroller.scrollTop = originalTop;
       busy = false;
+      lastCaptureEndedAt = Date.now();
     }
   }
 
   browser.runtime.onMessage.addListener((message, sender) => {
     if (sender.id !== browser.runtime.id || message?.type !== 'assyst-queue') return undefined;
     if (message.action === 'probe') {
-      if (grids().length) browser.runtime.sendMessage({ type: 'assyst-tagger', action: 'queueReady', token: message.token }).catch(() => undefined);
+      if (grids().length) {
+        probeLeaseUntil = Date.now() + 800;
+        browser.runtime.sendMessage({ type: 'assyst-tagger', action: 'queueReady', token: message.token }).catch(() => undefined);
+      }
       return undefined;
     }
     if (message.action === 'capture') return capture(message.cleanup === true).catch(error => ({ ok: false, error: error.message }));
     if (message.action === 'verify') {
       try {
+        if (globalThis.AssystAutoRefresh?.isRefreshing()) throw new Error('A lista está sendo atualizada. Nada será limpo.');
         const candidates = grids();
         if (candidates.length !== 1) throw new Error('Fila ambígua.');
         const info = cleanupContext(candidates[0]);
@@ -193,10 +201,11 @@
 
   let timer = 0, stopped = false, running = false, nextAllowed = 0, ignoreUntil = 0;
   function scheduleSync() {
-    if (stopped || running || Date.now() < ignoreUntil || document.hidden) return;
+    if (stopped || running || Date.now() < ignoreUntil || document.hidden || globalThis.AssystAutoRefresh?.isRefreshing()) return;
     clearTimeout(timer);
     timer = setTimeout(async () => {
       timer = 0;
+      if (stopped || document.hidden || globalThis.AssystAutoRefresh?.isRefreshing()) return;
       try {
         const candidates = grids();
         if (candidates.length !== 1) return;
@@ -208,6 +217,8 @@
     }, Math.max(1200, nextAllowed - Date.now()));
   }
   globalThis.AssystQueueSync = {
+    isBusy() { return busy || running || Date.now() < probeLeaseUntil || Date.now() - lastCaptureEndedAt < 1500; },
+    refreshFinished() { ignoreUntil = 0; nextAllowed = Math.min(nextAllowed, Date.now()); scheduleSync(); },
     changed(records) {
       if (running || busy || Date.now() < ignoreUntil) return;
       for (const record of records) {

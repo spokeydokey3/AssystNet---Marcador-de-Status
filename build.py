@@ -10,7 +10,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parent
 FILES = (
     'manifest.json', 'data.js', 'background.js', 'queue.js', 'content.js',
-    'popup.html', 'popup.css', 'popup.js', 'detail.js',
+    'popup.html', 'popup.css', 'popup.js', 'detail.js', 'autoRefresh.js',
 )
 CHROME_FILES = ('chrome/compat.js', 'chrome/service-worker.js', 'chrome/downloads.js',
                 'chrome/offscreen.html', 'chrome/offscreen.js')
@@ -23,7 +23,7 @@ def contents(browser='firefox', sources=False):
     files = OrderedDict((name, (ROOT / name).read_bytes()) for name in FILES)
     if sources:
         names = list(CHROME_FILES) + ['build.py', 'README.md', 'CHROME.md', 'CONSTRUIR.md',
-                                     'PUBLICAR.md', 'NOTAS-AMO.txt', 'REPRODUCAO.txt', 'VALIDACAO.md']
+                                     'PUBLICAR.md', 'NOTAS-AMO.txt', 'REPRODUCAO.txt', 'VALIDACAO.md', 'AUTO_REFRESH.md']
         names += [str(p.relative_to(ROOT)) for p in sorted((ROOT / 'tests').glob('*.cjs'))]
         for name in names:
             files[name] = (ROOT / name).read_bytes()

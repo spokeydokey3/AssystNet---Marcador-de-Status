@@ -1,7 +1,7 @@
-# Reprodução dos pacotes — 3.6.0
+# Reprodução dos pacotes — 3.7.0
 
-As fontes legíveis são mantidas diretamente. O pacote Firefox contém nove arquivos na raiz:
-manifest.json, data.js, background.js, queue.js, content.js, popup.html, popup.css, popup.js e detail.js.
+As fontes legíveis são mantidas diretamente. O pacote Firefox contém dez arquivos na raiz:
+manifest.json, data.js, background.js, queue.js, content.js, popup.html, popup.css, popup.js, detail.js e autoRefresh.js.
 `build.py` copia esses bytes sem transformação e fixa os metadados ZIP. Não há transpilação,
 concatenação, minificação, bibliotecas externas ou acesso à rede durante a construção.
 
@@ -16,7 +16,7 @@ concatenação, minificação, bibliotecas externas ou acesso à rede durante a 
 
 ## Passos completos para reproduzir o Firefox
 
-1. Extraia `AssystNet-3.6.0-fontes.zip`.
+1. Extraia `AssystNet-3.7.0-fontes.zip`.
 2. Abra um terminal na pasta que contém `manifest.json` e `build.py`.
 3. Execute:
 
@@ -32,11 +32,11 @@ py -3.12 --version
 py -3.12 build.py --browser firefox
 ```
 
-4. O resultado é `releases/AssystNet-3.6.0-submissao.zip`.
+4. O resultado é `releases/AssystNet-3.7.0-submissao.zip`.
 5. O SHA-256 é impresso pelo script e registrado em `REPRODUCAO.txt`. Para comparar com o ZIP enviado:
 
 ```sh
-python3 build.py --browser firefox --verify /caminho/AssystNet-3.6.0-submissao.zip
+python3 build.py --browser firefox --verify /caminho/AssystNet-3.7.0-submissao.zip
 ```
 
 No Windows, use `py -3.12` no lugar de `python3` e informe o caminho local entre aspas.
@@ -51,19 +51,19 @@ permissões Chrome ao Firefox. Para construir esta atualização Chrome, execute
 python3 build.py --browser chrome
 ```
 
-O resultado é `releases/AssystNet-3.6.0-chrome.zip`. Para reproduzir e comparar os bytes:
+O resultado é `releases/AssystNet-3.7.0-chrome.zip`. Para reproduzir e comparar os bytes:
 
 ```sh
-python3 build.py --browser chrome --verify /caminho/AssystNet-3.6.0-chrome.zip
+python3 build.py --browser chrome --verify /caminho/AssystNet-3.7.0-chrome.zip
 ```
 
-Esta entrega inclui `AssystNet-3.6.0-chrome-fontes.zip`, com os fontes compartilhados. Ele pode
-ser reproduzido por `python3 build.py --sources --output releases/AssystNet-3.6.0-chrome-fontes.zip`.
+Esta entrega inclui `AssystNet-3.7.0-fontes.zip`, com os fontes compartilhados. Ele pode
+ser reproduzido por `python3 build.py --sources --output releases/AssystNet-3.7.0-fontes.zip`.
 O pacote Chrome usa os mesmos serializadores e formato JSON v3 do Firefox 3.6.0.
 
 ## Validação opcional
 
-Os 57 testes de dados/background usam somente Node.js 24 (testado em 24.19.0), instalável em
+Os 61 testes de dados/background usam somente Node.js 24 (testado em 24.19.0), instalável em
 https://nodejs.org/. Execute:
 
 ```sh
@@ -74,8 +74,8 @@ Os testes DOM e Chromium são adicionais, com APIs WebExtension simuladas. Insta
 em uma pasta externa ao projeto, sem incluir node_modules no pacote:
 
 ```sh
-npm install --prefix /tmp/assyst-tools --no-audit --no-fund jsdom@26.1.0 playwright@1.64.1 web-ext@10.8.0
-ASSYST_JSDOM_MODULE=/tmp/assyst-tools/node_modules/jsdom node --test tests/dom.cjs
+npm install --prefix /tmp/assyst-tools --no-audit --no-fund jsdom@26.1.0 @sinonjs/fake-timers@13.0.5 playwright@1.64.1 web-ext@10.8.0
+ASSYST_JSDOM_MODULE=/tmp/assyst-tools/node_modules/jsdom ASSYST_FAKE_TIMERS_MODULE=/tmp/assyst-tools/node_modules/@sinonjs/fake-timers node --test tests/dom.cjs tests/refresh-dom.cjs
 ASSYST_PLAYWRIGHT_MODULE=/tmp/assyst-tools/node_modules/playwright ASSYST_CHROMIUM_PATH=/usr/bin/chromium node tests/chrome-browser.cjs
 ```
 
@@ -86,10 +86,10 @@ para os resultados e limites. Para lint, extraia o ZIP Firefox em uma pasta e ex
 
 ## Arquivos para distribuição
 
-- `AssystNet-3.6.0-submissao.zip`: nova versão da extensão.
-- `AssystNet-3.6.0-fontes.zip`: campo **Enviar código-fonte** da mesma submissão 3.6.0.
-- `AssystNet-3.6.0-chrome.zip`: pacote Chrome para teste e envio como atualização no cadastro existente da Chrome Web Store.
-- `AssystNet-3.6.0-chrome-fontes.zip`: fontes compartilhados e documentação desta entrega Chrome.
+- `AssystNet-3.7.0-submissao.zip`: nova versão da extensão.
+- `AssystNet-3.7.0-fontes.zip`: campo **Enviar código-fonte** da mesma submissão 3.7.0; fontes compartilhados das duas edições.
+- `AssystNet-3.7.0-chrome.zip`: pacote Chrome para teste e envio como atualização no cadastro existente da Chrome Web Store.
+- `AssystNet-3.7.0-fontes.zip`: fontes compartilhados e documentação desta entrega Chrome.
 
 O ZIP de execução não inclui testes, bibliotecas, ferramentas, dados reais de chamados,
 credenciais ou versões anteriores. O ZIP de fontes inclui o necessário para construir e conferir.

@@ -44,6 +44,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     $('tagCount').textContent = `${state.assyst_tags.length} tags`;
     $('ticketCount').textContent = `${Object.keys(state.assyst_ticket_tags).length} com tag`;
     $('autoSync').checked = state.assyst_auto_sync;
+    const refresh = state.assyst_refresh_settings;
+    $('refreshEnabled').checked = refresh.enabled;
+    $('refreshInterval').value = String(refresh.intervalSeconds);
+    $('refreshBackground').checked = refresh.background;
     const sync = state.assyst_last_queue_sync;
     $('queueCount').textContent = sync ? `Última fila: ${sync.total}` : 'Fila ainda não conferida';
     $('queueStatus').textContent = sync ? `Última conferência: ${sync.total} chamado(s), ${sync.removed} registro(s) antigo(s) removido(s), em ${new Date(sync.at).toLocaleString('pt-BR')}.` : 'Abra sua fila completa e atualizada no AssystNet. Durante buscas e carregamento, nenhuma marcação é apagada.';
@@ -246,6 +250,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     await request('setAutoSync', { enabled: $('autoSync').checked });
     feedback(state.assyst_auto_sync ? 'Limpeza automática ativada para a fila completa e sem filtros.' : 'Limpeza automática pausada.');
   }));
+  for (const id of ['refreshEnabled', 'refreshInterval', 'refreshBackground']) {
+    $(id).addEventListener('change', async () => {
+      try {
+        await request('setRefreshSettings', { settings: {
+          enabled: $('refreshEnabled').checked,
+          intervalSeconds: Number($('refreshInterval').value),
+          background: $('refreshBackground').checked
+        } });
+        feedback('Preferências de atualização salvas neste navegador.');
+      } catch (error) { feedback(error.message, true); request('get').catch(() => {}); }
+    });
+  }
   $('btnSync').addEventListener('click', () => run(async () => {
     feedback('Conferindo a fila duas vezes. Aguarde sem alterar a página.');
     const payload = sourceTabId !== undefined ? { sourceTabId } : {};

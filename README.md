@@ -1,9 +1,24 @@
-# AssystNet · Marcador de Status — Firefox e Chrome 3.6.0
+# AssystNet · Marcador de Status — Firefox e Chrome 3.7.0
 
 Extensão Manifest V3, JavaScript/HTML/CSS puros, sem frameworks, bundlers ou dependências
 de execução. Os dados ficam exclusivamente em `browser.storage.local`, no perfil do navegador.
-As edições Firefox e Chrome 3.6.0 usam o mesmo código de dados, interface e fila. Os manifestos
+As edições Firefox e Chrome 3.7.0 usam o mesmo código de dados, interface e fila. Os manifestos
 e downloads têm adaptação por navegador. Veja CHROME.md para atualizar a instalação Chrome.
+
+## Atualizar os dados no AssystNet
+
+O novo módulo autoRefresh.js aciona somente os botões nativos das duas telas fornecidas:
+Página Inicial (#homepage), dentro do painel “Chamados Atribuídos a mim”, e fila própria
+(#eventMonitor/4). O recurso é opcional e começa desligado, com intervalo padrão de um minuto.
+Há opções de 30 segundos, 1, 2 e 5 minutos, e segundo plano desligado por padrão.
+Ele não recarrega a página, não reproduz requisições internas e não altera chamados.
+As preferências ficam no perfil em browser.storage.local, separadas do backup de chamados.
+
+Há pausas para edição, seleção, carregamento e varredura da fila, um único temporizador por
+controlador e nenhum observer adicional. Sem confirmação observável de término, não são
+repetidos cliques. Consulte AUTO_REFRESH.md para seletores, limites e validação real necessária.
+A atualização dos dados pelo botão nativo e a limpeza das marcações locais são opções distintas.
+O JSON continua no formato v3, intercambiável com Firefox/Chrome 3.6.0 ou posterior.
 
 ## Marcações em qualquer página de chamado
 

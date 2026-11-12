@@ -1,7 +1,7 @@
-# Testar e publicar o Firefox 3.6.0
+# Testar e publicar o Firefox 3.7.0
 
 1. Na extensão instalada, salve e confira um backup JSON antes da atualização.
-2. Para teste temporário, extraia `AssystNet-3.6.0-submissao.zip`, abra
+2. Para teste temporário, extraia `AssystNet-3.7.0-submissao.zip`, abra
    `about:debugging#/runtime/this-firefox`, escolha **Carregar extensão temporária** e selecione
    manifest.json. Instalações temporárias não são uma distribuição permanente.
 3. Recarregue as abas do AssystNet depois de atualizar. Teste um chamado aberto pela Página
@@ -14,8 +14,8 @@
    anterior. Filas vazias requerem confirmação manual para apagar todos os registros.
 7. Confira CSV somente dos abertos e um JSON de ida e volta. O formato v3 requer 3.6.0+ no destino;
    backups antigos continuam aceitos. A limpeza não apaga as definições das tags.
-8. No cadastro existente da Mozilla, envie `AssystNet-3.6.0-submissao.zip` como nova versão e
-   `AssystNet-3.6.0-fontes.zip` no campo dos fontes. Ambos devem pertencer à versão 3.6.0.
+8. No cadastro existente da Mozilla, envie `AssystNet-3.7.0-submissao.zip` como nova versão e
+   `AssystNet-3.7.0-fontes.zip` no campo dos fontes. Ambos devem pertencer à versão 3.6.0.
 9. Use NOTAS-AMO.txt para as notas ao revisor e CONSTRUIR.md para a reprodução. Selecione desktop;
    o fluxo Android não foi validado. A assinatura e a aprovação são realizadas pela Mozilla.
 
@@ -25,14 +25,21 @@ storage.local no mesmo perfil. Remover extensão/perfil pode apagar esses dados.
 Ao trocar de computador, exporte o JSON atualizado e importe no perfil de destino.
 Na passagem de temporária para permanente, use o JSON para garantir a transferência.
 
+## Testar a atualização automática
+
+Siga AUTO_REFRESH.md. Ela começa desativada: habilite com um minuto e observe dois ciclos
+em cada tela, preservação nativa de filtros e seleção, sessão expirada e rede lenta. A extensão
+não recarrega a página; os botões são os fornecidos pelo próprio AssystNet. O comportamento
+real de Ajax/Dojo e seus sinais de carregamento precisam ser conferidos pelo operador.
+
 Notas de atualização sugeridas:
 
 ```text
-Versão 3.6.0
-- Marcações na fila e nos chamados abertos pela Página Inicial, busca ou link direto.
-- Quatro caixas de contato independentes, sem confirmação ao desmarcar.
-- Datas e referência de sete dias apenas informativas, sem bloqueio por calendário.
-- Limpeza da fila com duas leituras completas, pausa e cópia de recuperação.
-- Contagem da última fila conferida separada da quantidade de registros com tag.
-- Migração dos dados anteriores e importação dos formatos antigos de backup.
+Versão 3.7.0
+- Atualização opcional da lista pelo botão nativo, na Página Inicial e na fila própria.
+- Intervalos de 30 segundos, 1, 2 ou 5 minutos, com preferências salvas localmente.
+- Opção de segundo plano, desligada por padrão.
+- Pausa durante edição, seleção, carregamento e conferência da fila.
+- Proteção contra cliques sobrepostos e reutilização do observer existente.
+- Sem recarregar a página inteira; JSON v3 compatível com as versões 3.6.0.
 ```

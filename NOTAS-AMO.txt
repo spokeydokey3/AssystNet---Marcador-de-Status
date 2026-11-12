@@ -1,16 +1,16 @@
-AssystNet Status Tagger — Firefox 3.6.0 review notes
+AssystNet Status Tagger — Firefox 3.7.0 review notes
 
 Purpose: local ticket tags and operator-maintained contact checkboxes on the two
 AssystNet hosts declared in the manifest. No official ticket status is changed.
-No network requests, telemetry, remote code or third-party data transmission.
+No independent AssystNet requests, telemetry, remote code or third-party data transmission. The optional refresh clicks the native application control, whose own requests use the existing session.
 Permissions remain storage and downloads. Data uses browser.storage.local only.
 The existing Firefox ID assyst-status-tagger@tjce.local is preserved.
 
-The nine runtime files are readable JavaScript, HTML and CSS. No framework,
+The ten runtime files are readable JavaScript, HTML and CSS. No framework,
 bundler, transpiler, minifier or external runtime library is used. Source ZIP includes
 build.py, requirements and full step-by-step instructions in CONSTRUIR.md.
 With Python 3.12+ run: python3 build.py --browser firefox
-The output is releases/AssystNet-3.6.0-submissao.zip. Tested on Linux/Python 3.12.14.
+The output is releases/AssystNet-3.7.0-submissao.zip. Tested on Linux/Python 3.12.14.
 No npm dependencies or network access are required to build. The script copies the
 Firefox runtime bytes unchanged, with fixed ZIP metadata; REPRODUCAO.txt records
 the SHA-256. Source-to-submission reproduction was checked byte for byte.
@@ -36,7 +36,7 @@ Changes:
   is performed from individual ticket pages or partial visible rows.
 - CSV uses only open references from a fresh scan, rather than historic storage.
 
-Testing: 57 automated Node tests (including four Chrome/Firefox portability tests), seven simulated-DOM scenarios and four Chromium
+Testing: 61 automated Node tests (including four Chrome/Firefox portability tests), twenty simulated-DOM scenarios and four Chromium
 interface/Blob checks with simulated extension APIs passed. Firefox ZIP web-ext
 10.8.0 lint: zero errors, warnings and notices. Firefox/live institutional integration
 must still be tested by an authorized operator. Filter detection depends on the host DOM.
@@ -45,3 +45,17 @@ Suggested review: create a tag, open a ticket from different entry points, toggl
 nonconsecutive boxes, transfer JSON, and check own-queue cleanup/recovery using synthetic
 data. Live institutional access may require an authorized account. No credentials,
 operational backups or real ticket details are included in the submission.
+
+
+Version 3.7.0 adds autoRefresh.js. It is disabled by default; interval defaults to
+60 seconds, with choices 30/60/120/300 seconds. Background tabs are opt-in. A single
+controller timeout is canceled/rescheduled on settings, visibility and navigation.
+It clicks the supplied native eventMonitorRefreshButton on #eventMonitor/4, or the
+refresh control within the unique homepage titlebar headed “Chamados Atribuídos a mim”
+on #homepage. Generated Dojo IDs are not used. It never reloads the page.
+It reuses the existing MutationObserver and yields to editing, selection, tag writes,
+dialogs and queue scans. It observes native loading/grid signals, not presumed Ajax
+success; unknown completion pauses repeated clicks and protects cleanup. See
+AUTO_REFRESH.md for operator tests of real native behavior and filter preservation.
+No permissions added. Preferences use local storage and are not part of ticket backups.
+Ticket JSON remains format 3, compatible with Firefox/Chrome 3.6.0.

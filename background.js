@@ -24,6 +24,7 @@ async function readState() {
   }
   state.assyst_schema_version = 3;
   state.assyst_auto_sync = raw.assyst_auto_sync !== false;
+  state.assyst_refresh_settings = AssystData.refreshSettings(raw.assyst_refresh_settings);
   state.assyst_last_queue_sync = raw.assyst_last_queue_sync || null;
   state.assyst_has_cleanup_backup = raw.assyst_has_cleanup_backup === true;
   state.assyst_has_upgrade_backup = raw.assyst_has_upgrade_backup === true || metadata.assyst_has_upgrade_backup === true;
@@ -205,7 +206,9 @@ async function handle(message) {
     if (message.format !== 'json') throw new Error('Formato de exportação inválido.');
     return download(state, message.format);
   }
-  if (message.action === 'setAutoSync') {
+  if (message.action === 'setRefreshSettings') {
+    state.assyst_refresh_settings = AssystData.refreshSettings(message.settings, true);
+  } else if (message.action === 'setAutoSync') {
     if (typeof message.enabled !== 'boolean') throw new Error('Configuração inválida.');
     state.assyst_auto_sync = message.enabled;
   } else if (message.action === 'saveTag' || message.action === 'createAndAssign') {

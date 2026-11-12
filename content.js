@@ -417,6 +417,7 @@
     }
     schedule();
     globalThis.AssystDetailView?.nativeChanged(records);
+    globalThis.AssystAutoRefresh?.changed(records);
     globalThis.AssystQueueSync?.changed(records);
   });
 
@@ -443,7 +444,7 @@
   document.addEventListener('visibilitychange', () => { if (!document.hidden && !stopped) refreshDay(); });
   function start() {
     stopped = false;
-    observer.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['class'] });
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['class', 'disabled', 'aria-disabled', 'aria-busy'] });
     browser.storage.onChanged.addListener(onStorage);
     request('get').catch(error => showError(error.message));
     refreshDay();
@@ -459,6 +460,7 @@
   // Shared controls for the breadcrumb view; all state and writes remain here.
   globalThis.AssystTaggerUI = {
     isReady() { return !!state && !stopped; },
+    isBusy() { return pendingAssignments.size > 0 || pendingContacts.size > 0 || !!activeDialog; },
     bind(target, ticket) {
       if (!state || stopped) return;
       let select = target.querySelector(SELECT);

@@ -9,9 +9,17 @@ globalThis.AssystData = (() => {
     { id: 'ERRO_GERAL', label: 'Erro Geral', bg: '#7C3AED', color: '#FFFFFF' }
   ];
   const KEYS = ['assyst_tags', 'assyst_custom_tags', 'assyst_ticket_tags', 'assyst_contacts', 'assyst_revision',
-    'assyst_schema_version', 'assyst_has_upgrade_backup', 'assyst_auto_sync', 'assyst_last_queue_sync', 'assyst_has_cleanup_backup'];
+    'assyst_schema_version', 'assyst_has_upgrade_backup', 'assyst_auto_sync', 'assyst_last_queue_sync', 'assyst_has_cleanup_backup', 'assyst_refresh_settings'];
   const own = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
   const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+
+  function refreshSettings(value, strict = false) {
+    const valid = record(value) && typeof value.enabled === 'boolean' &&
+      [30, 60, 120, 300].includes(value.intervalSeconds) && typeof value.background === 'boolean';
+    if (strict && !valid) throw new Error('Escolha um intervalo de 30 segundos, 1, 2 ou 5 minutos e opções válidas.');
+    if (!valid) return { enabled: false, intervalSeconds: 60, background: false };
+    return { enabled: value.enabled, intervalSeconds: value.intervalSeconds, background: value.background };
+  }
 
   function hex(value) {
     if (typeof value !== 'string') throw new Error('A cor deve ser um código HEX.');
@@ -221,5 +229,5 @@ globalThis.AssystData = (() => {
   }
 
   return { KEYS, normalize, parseBackup, merge, backup, csv, tag, hex, textColor, identifier,
-    today, day, addDays, displayDate, contact, contactInfo, changeContact };
+    today, day, addDays, displayDate, contact, contactInfo, changeContact, refreshSettings };
 })();

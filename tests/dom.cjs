@@ -18,6 +18,9 @@ async function setup({ route = '#events/2179427?eventType=1&currentIndex=5', ind
     <div class="dgrid-scroller"><table><tbody id="rows"></tbody></table></div></div>`;
   const dom = new JSDOM(html, { url: 'https://cati.tjce.jus.br/assystnet/' + route, pretendToBeVisual: true, runScripts: 'outside-only' });
   const w = dom.window, doc = w.document;
+  let observers = 0;
+  const NativeObserver = w.MutationObserver;
+  w.MutationObserver = class extends NativeObserver { constructor(callback) { super(callback); observers++; } };
   w.HTMLElement.prototype.getClientRects = function() { return this.closest('[hidden]') ? [] : [{ width: 100, height: 20 }]; };
   w.CSS = { escape: value => value };
   const entries = [['2179427', 'Aberto'], ['R2', 'Resolvido'], ['S3', 'Aberto']];
@@ -42,9 +45,9 @@ async function setup({ route = '#events/2179427?eventType=1&currentIndex=5', ind
   w.confirm = () => { confirmations++; return true; };
   w.browser = { runtime: { id: 'test@assyst', onMessage: { addListener(fn) { listeners.push(fn); } },
     sendMessage: message => bg.send(message.action, message) }, storage: bg.browser.storage };
-  for (const name of ['data.js', 'queue.js', 'content.js', 'detail.js']) w.eval(fs.readFileSync(`${root}/${name}`, 'utf8'));
+  for (const name of ['data.js', 'autoRefresh.js', 'queue.js', 'content.js', 'detail.js']) w.eval(fs.readFileSync(`${root}/${name}`, 'utf8'));
   await until(() => doc.querySelector('td.field-eventRef select'));
-  return { dom, w, doc, bg, options, listeners, confirmations: () => confirmations };
+  return { dom, w, doc, bg, options, listeners, confirmations: () => confirmations, observers: () => observers };
 }
 async function close(env) {
   env.w.dispatchEvent(new env.w.Event('pagehide'));
@@ -59,6 +62,7 @@ test('home-page and queue breadcrumbs both bind the same saved tag regardless of
       await until(() => env.doc.querySelector('[data-assyst-ui="detail-controls"] select'));
       assert.equal(env.doc.querySelector('[data-assyst-ui="detail-controls"] select').value, 'REDMINE');
       assert.equal(env.doc.querySelectorAll('[data-assyst-ui="detail-controls"]').length, 1);
+      assert.equal(env.observers(), 1);
     } finally { await close(env); }
   }
 });
@@ -98,6 +102,8 @@ test('navigation blocks stale handlers and binds the current full R reference', 
 test('full virtual-grid cleanup reads every row twice and removes only absent records', async () => {
   const env = await setup({ route: '#eventMonitor/4', virtual: true });
   try {
+    env.listeners[0]({ type: 'assyst-queue', action: 'probe', token: 'test' }, { id: 'test@assyst' });
+    assert.equal(env.w.AssystQueueSync.isBusy(), true, 'refresh is deferred while a scan frame is being discovered');
     const result = await env.bg.send('syncQueue');
     assert.ok(result.ok, result.error); assert.equal(result.total, 3);
     assert.equal(env.bg.read().assyst_ticket_tags.S9, undefined);
@@ -108,13 +114,14 @@ test('full virtual-grid cleanup reads every row twice and removes only absent re
 });
 
 test('active text, hidden filters, extra selectors, loading or missing rows cannot authorize cleanup', async () => {
-  for (const mode of ['text', 'hidden', 'select', 'busy', 'incomplete', 'otherQueue']) {
+  for (const mode of ['text', 'hidden', 'select', 'busy', 'incomplete', 'otherQueue', 'refreshing']) {
     const env = await setup({ route: mode === 'otherQueue' ? '#eventMonitor/5' : '#eventMonitor/4', total: mode === 'incomplete' ? 4 : 3 });
     try {
       if (mode === 'text') env.doc.getElementById('filter').value = 'R2';
       if (mode === 'hidden') { const node = env.doc.createElement('input'); node.type = 'hidden'; node.name = 'activeFilter'; node.value = 'restricted'; env.doc.body.append(node); }
       if (mode === 'select') { const node = env.doc.createElement('select'); node.innerHTML = '<option>Somente urgentes</option>'; env.doc.body.append(node); }
       if (mode === 'busy') env.doc.querySelector('.dgrid').setAttribute('aria-busy', 'true');
+      if (mode === 'refreshing') env.w.AssystAutoRefresh = { isRefreshing: () => true, changed() {} };
       const result = await env.bg.send('syncQueue');
       assert.equal(result.ok, false, mode);
       assert.equal(env.bg.read().assyst_ticket_tags.S9, 'ATENDIMENTO');
@@ -143,6 +150,14 @@ test('popup separates queue/mark counts and its recovery button restores records
   w.eval(fs.readFileSync(`${root}/popup.js`, 'utf8'));
   try {
     await until(() => w.document.getElementById('ticketCount').textContent === '2 com tag' && !w.document.getElementById('btnSync').disabled);
+    assert.equal(w.document.getElementById('refreshEnabled').checked, false);
+    assert.equal(w.document.getElementById('refreshInterval').value, '60');
+    w.document.getElementById('refreshEnabled').checked = true;
+    w.document.getElementById('refreshEnabled').dispatchEvent(new w.Event('change'));
+    await until(() => bg.read().assyst_refresh_settings?.enabled === true);
+    w.document.getElementById('refreshInterval').value = '120';
+    w.document.getElementById('refreshInterval').dispatchEvent(new w.Event('change'));
+    await until(() => bg.read().assyst_refresh_settings?.intervalSeconds === 120);
     w.document.getElementById('btnSync').click();
     await until(() => w.document.getElementById('queueCount').textContent === 'Última fila: 1' && !w.document.getElementById('btnRestoreCleanup').hidden && !w.document.getElementById('btnRestoreCleanup').disabled);
     assert.equal(w.document.getElementById('ticketCount').textContent, '1 com tag');

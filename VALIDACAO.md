@@ -1,28 +1,36 @@
-# Validação do Firefox e Chrome 3.6.0
+# Validação do Firefox e Chrome 3.7.0
 
-- `node --test tests/*.test.cjs`: 57 testes aprovados, incluindo quatro de portabilidade Firefox/Chrome.
-- `node --test tests/dom.cjs`, com jsdom 26.1.0: sete cenários aprovados.
-- `tests/chrome-browser.cjs`, com Playwright 1.64.1 e Chromium: quatro verificações de interface
-  e URLs Blob aprovadas. As APIs de extensão são simuladas.
+- `node --test tests/*.test.cjs`: 61 testes aprovados, com persistência/validação das preferências,
+  migração dos dados, callbacks Chrome e transferência JSON/CSV.
+- `tests/dom.cjs`: sete cenários aprovados, incluindo os controles do popup e um único observer.
+- `tests/refresh-dom.cjs`: treze cenários aprovados com jsdom 26.1.0 e temporizadores simulados
+  por @sinonjs/fake-timers 13.0.5. Usam o HTML dos botões fornecido pelo usuário e grids sintéticos.
+- `tests/chrome-browser.cjs`: quatro verificações Chromium/Playwright 1.64.1 aprovadas com APIs
+  WebExtension simuladas, incluindo a UI existente e URLs Blob com Unicode.
 - Pacote Firefox: web-ext 10.8.0, zero erros, avisos e notificações.
-- O ZIP Firefox foi reconstruído a partir dos fontes e comparado byte a byte.
-- O ZIP Chrome foi reproduzido dos fontes e os arquivos compartilhados foram comparados com o Firefox já publicado.
-- Os quatro testes de portabilidade também foram executados usando os arquivos extraídos dos ZIPs de execução.
+- Pacotes reproduzidos byte a byte a partir do ZIP de fontes. JavaScripts compartilhados iguais
+  nas duas edições. Nenhuma nova permissão.
+- Os quatro testes de portabilidade foram executados também com os arquivos dos ZIPs 3.6.0 e
+  3.7.0, em ambas as combinações Firefox/Chrome. O JSON permanece v3 e o CSV mantém os bytes/BOM.
 
-A atualização Chrome reutiliza sem alterações o código de execução compartilhado do Firefox
-3.6.0, em que foram verificadas as interfaces acima. Os novos testes executam também a ponte
-de mensagens callback do Chrome, a migração do esquema 2, JSON v1/v2, JSON v3 com caixas não
-consecutivas, Unicode, referências com prefixos/zeros, limpeza e recuperação, mesclagem e
-substituição, ida e volta Firefox/Chrome e os bytes do CSV com BOM.
+## Cenários do novo recurso
 
-Cobertura: breadcrumb curto/longo, navegação e controles antigos, referências alfanuméricas,
-caixas intermediárias livres e UI otimista, datas apenas informativas, migração e transferência
-JSON, erros de gravação e concorrência, duas varreduras da grade virtual, filtros visíveis/ocultos,
-outras filas, carregamento, contagem incompleta, mudanças antes da gravação, confirmação de fila
-vazia, cópia atômica de recuperação, restauração sem sobrescrever edições e pausa automática.
+Padrão desativado, intervalo de um minuto, opções válidas 30/60/120/300, segundo plano opt-in,
+persistência após reinício, interrupção de cliques ao desligar, troca de intervalo sem duplicar
+temporizadores, Página Inicial limitada ao painel nomeado, IDs dinâmicos, navegação SPA,
+botões ausentes/desabilitados e painéis ambíguos, edição, seleções de linhas/texto, diálogos,
+gravações e leituras da fila, cliques manuais, conclusão lenta/ausente, botão recriado, BFCache e
+liberação tardia da espera. A proteção de limpeza/CSV é mantida durante uma atualização.
 
-Não há Firefox instalado no ambiente de revisão. Os testes das APIs Chrome usam simulações;
-a instalação nativa Chrome e o teste na interface institucional real continuam necessários.
-Valide os filtros e carregamento antes de distribuir a
-atualização à equipe; se a estrutura do AssystNet variar, pause a limpeza até conferir.
-Não foi realizada publicação nas lojas Mozilla/Chrome Web Store nem alteração no AssystNet.
+## Limites e validação institucional
+
+Não foi acessada uma sessão real do AssystNet. Os testes simulam o comportamento de clique,
+carregamento e conclusão da grade; não confirmam como o Ajax/Dojo real responde ao clique,
+se preserva filtros/rolagem nem quais sinais de carregamento são emitidos em cada instalação.
+Siga AUTO_REFRESH.md para validar dois ciclos por tela, resposta lenta, sessão expirada,
+preservação dos estados e interação com CSV/limpeza no Firefox e Chrome da equipe.
+
+Se não observar conclusão, o controlador pausa novos cliques nessa tela para impedir
+sobreposição. Se o navegador suspender ou limitar temporizadores em abas ocultas, os
+intervalos podem atrasar. Não há alteração de políticas administrativas nem instalação
+permanente/publicação nas lojas por esta entrega.

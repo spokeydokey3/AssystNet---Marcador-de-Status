@@ -37,10 +37,10 @@ const { background, root } = require('./harness.cjs');
       window.chrome = {
         runtime: { id: 'test', getURL: p => p, sendMessage: message => window.assystTestRequest(message),
           onMessage: { addListener(fn) { window.testChromeListeners.push(fn); }, removeListener() {}, hasListener() { return false; } } },
-        storage: { local: {}, onChanged: { addListener() {}, removeListener() {} } }
+        storage: { local: { async get() { return {}; } }, onChanged: { addListener() {}, removeListener() {} } }
       };
     });
-    for (const name of ['chrome/compat.js', 'data.js', 'queue.js', 'content.js', 'detail.js']) {
+    for (const name of ['chrome/compat.js', 'data.js', 'autoRefresh.js', 'queue.js', 'content.js', 'detail.js']) {
       await page.addScriptTag({ content: fs.readFileSync(path.join(root, name), 'utf8') });
     }
     const detail = page.locator('[data-assyst-ui="detail-controls"]');

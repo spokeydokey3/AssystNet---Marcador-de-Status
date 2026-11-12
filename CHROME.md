@@ -1,4 +1,4 @@
-# AssystNet para Chrome — 3.6.0
+# AssystNet para Chrome — 3.7.0
 
 Esta é uma extensão Manifest V3 para Chrome desktop 116 ou posterior. Usa os mesmos
 dados, tags, quatro tentativas de contato, interface e relatórios da versão Firefox.
@@ -6,7 +6,7 @@ dados, tags, quatro tentativas de contato, interface e relatórios da versão Fi
 
 ## Instalar para testar
 
-1. Baixe e extraia `AssystNet-3.6.0-chrome.zip` em uma pasta permanente.
+1. Baixe e extraia `AssystNet-3.7.0-chrome.zip` em uma pasta permanente.
 2. Abra `chrome://extensions` e ative **Modo do desenvolvedor**.
 3. Clique em **Carregar sem compactação** e selecione a pasta extraída que contém `manifest.json`.
 4. No menu de extensões, fixe o ícone do AssystNet se desejar.
@@ -59,6 +59,17 @@ Cada marcação recebe a data atual, que pode não ser a data do contato real. D
 e referência de sete dias são apenas informativos; não há bloqueio por intervalo, fins de
 semana, feriados ou resposta informada. A extensão não autoriza nem realiza encerramentos.
 
+## Atualização automática da lista
+
+Na versão 3.7.0, ative “Acionar automaticamente o botão Atualizar” no popup e escolha
+30 segundos, 1, 2 ou 5 minutos. O padrão é desligado, um minuto, sem segundo plano.
+O recurso usa os botões nativos da Página Inicial e da fila própria, sem recarregar a página.
+São adiados cliques durante edição, seleção, carregamento, gravação ou conferência da fila.
+Se o término não for observado, novas tentativas automáticas são pausadas.
+Veja AUTO_REFRESH.md para testar o comportamento nativo, os filtros e a sessão autenticada.
+O JSON v3 continua compatível com o Firefox/Chrome 3.6.0; não é preciso migrar os backups.
+As preferências de atualização são locais e não entram nesse JSON.
+
 ## Limpeza da fila
 
 Está ativada por padrão ao abrir/atualizar “Chamados atribuídos a mim” na rota #eventMonitor/4.
@@ -72,7 +83,7 @@ substitui essa cópia. Confira o comportamento no AssystNet real antes de distri
 
 ## Publicar para a equipe
 
-Depois de testar no ambiente real, envie `AssystNet-3.6.0-chrome.zip` como atualização no mesmo cadastro da Chrome Web Store.
+Depois de testar no ambiente real, envie `AssystNet-3.7.0-chrome.zip` como atualização no mesmo cadastro da Chrome Web Store.
 O ZIP já contém o manifesto e os arquivos de execução na raiz. A listagem, imagens, justificativas
 das permissões e declarações de privacidade são preenchidas no painel; esta entrega não publica na loja.
 Após a instalação da loja, as atualizações da mesma extensão mantêm o ID e o armazenamento.
@@ -91,6 +102,6 @@ O acesso está restrito aos dois endereços AssystNet já usados pela equipe.
 python3 build.py --browser chrome
 ```
 
-O resultado é `releases/AssystNet-3.6.0-chrome.zip`. Veja `CONSTRUIR.md` para todos os comandos,
-requisitos e verificações de reprodução. O arquivo `AssystNet-3.6.0-chrome-fontes.zip` contém o código
+O resultado é `releases/AssystNet-3.7.0-chrome.zip`. Veja `CONSTRUIR.md` para todos os comandos,
+requisitos e verificações de reprodução. O arquivo `AssystNet-3.7.0-fontes.zip` contém o código
 compartilhado e os adaptadores dos dois navegadores.
