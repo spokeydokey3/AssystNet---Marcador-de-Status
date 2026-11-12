@@ -67,7 +67,9 @@ test('cleanup and recovery checkpoint commit atomically; storage failures do not
 test('empty queues require explicit manual confirmation, automatic mode never wipes all records', async () => {
   const bg = background(initial(), { capture: capture([]) }); await bg.send('get'); const before = bg.read();
   assert.equal((await bg.send('syncQueue', { automatic: true })).needsEmptyConfirmation, true);
-  assert.deepEqual(bg.read(), before);
+  assert.deepEqual(bg.read().assyst_ticket_tags, before.assyst_ticket_tags);
+  assert.deepEqual(bg.read().assyst_queue_snapshot.tickets, []);
+  assert.equal(bg.read().assyst_cleanup_backup, before.assyst_cleanup_backup);
   assert.ok((await bg.send('syncQueue', { allowEmpty: true })).ok);
   assert.deepEqual(bg.read().assyst_ticket_tags, {});
   assert.ok(bg.read().assyst_cleanup_backup);

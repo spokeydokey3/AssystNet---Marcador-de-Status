@@ -51,6 +51,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const sync = state.assyst_last_queue_sync;
     $('queueCount').textContent = sync ? `Última fila: ${sync.total}` : 'Fila ainda não conferida';
     $('queueStatus').textContent = sync ? `Última conferência: ${sync.total} chamado(s), ${sync.removed} registro(s) antigo(s) removido(s), em ${new Date(sync.at).toLocaleString('pt-BR')}.` : 'Abra sua fila completa e atualizada no AssystNet. Durante buscas e carregamento, nenhuma marcação é apagada.';
+    const snapshot = state.assyst_queue_snapshot;
+    $('reportStatus').textContent = snapshot ?
+      `Fila conferida em ${new Date(snapshot.at).toLocaleString('pt-BR')}: ${snapshot.tickets.length} aberto(s) de ${snapshot.total} chamado(s). Baixe de qualquer tela, sem abrir a lista novamente.` :
+      'Ainda não há uma fila salva neste navegador. Abra a Página Inicial ou “Chamados atribuídos a mim”, sem filtros, e aguarde a conferência automática. Você também pode exportar diretamente dessas telas.';
     $('btnRestoreCleanup').hidden = !state.assyst_has_cleanup_backup;
     $('btnCleanupBackup').hidden = !state.assyst_has_cleanup_backup;
     $('btnUpgradeBackup').hidden = !state.assyst_has_upgrade_backup;
@@ -190,9 +194,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     await request('export', { format: 'json' }); feedback('Backup enviado aos downloads do navegador. Confira se o arquivo foi salvo antes de trocar de computador.');
   }));
   $('btnCSV').addEventListener('click', () => run(async () => {
-    feedback('Conferindo a fila atual. Aguarde; a tabela pode rolar automaticamente.');
+    feedback(state.assyst_queue_snapshot ? 'Preparando a planilha da última fila conferida.' : 'Conferindo a fila visível. Aguarde; a tabela pode rolar automaticamente.');
     const result = await request('export', { format: 'csv', ...(sourceTabId !== undefined ? { sourceTabId } : {}) });
-    feedback(`Planilha enviada aos downloads: ${result.count} chamado(s) aberto(s) da fila atual, ordenados por tag e número.`);
+    feedback(`Planilha enviada aos downloads: ${result.count} chamado(s) aberto(s)${result.savedQueue ? ` na conferência de ${new Date(result.confirmedAt).toLocaleString('pt-BR')}` : ' da fila conferida agora'}, ordenados por tag e número.`);
   }));
   $('btnUpgradeBackup').addEventListener('click', () => run(async () => {
     await request('exportUpgradeBackup');

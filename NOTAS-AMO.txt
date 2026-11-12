@@ -1,4 +1,4 @@
-AssystNet Status Tagger — Firefox 3.7.0 review notes
+AssystNet Status Tagger — Firefox 3.8.0 review notes
 
 Purpose: local ticket tags and operator-maintained contact checkboxes on the two
 AssystNet hosts declared in the manifest. No official ticket status is changed.
@@ -10,7 +10,7 @@ The ten runtime files are readable JavaScript, HTML and CSS. No framework,
 bundler, transpiler, minifier or external runtime library is used. Source ZIP includes
 build.py, requirements and full step-by-step instructions in CONSTRUIR.md.
 With Python 3.12+ run: python3 build.py --browser firefox
-The output is releases/AssystNet-3.7.0-submissao.zip. Tested on Linux/Python 3.12.14.
+The output is releases/AssystNet-3.8.0-submissao.zip. Tested on Linux/Python 3.12.14.
 No npm dependencies or network access are required to build. The script copies the
 Firefox runtime bytes unchanged, with fixed ZIP metadata; REPRODUCAO.txt records
 the SHA-256. Source-to-submission reproduction was checked byte for byte.
@@ -26,7 +26,7 @@ Changes:
   Legacy formats and dates migrate without dropping tag assignments. Unknown future
   schemas are rejected without rewriting their data. Older clients cannot import v3.
 - Automatic cleanup is enabled by default for the observed own-queue route
-  #eventMonitor/4. It refuses detected filters, loading, ambiguous/incomplete grids,
+  #eventMonitor/4 or the uniquely scoped own panel on #homepage. It refuses detected filters, loading, ambiguous/incomplete grids,
   other routes and changed contexts. It compares two complete virtual-grid captures,
   validates full membership and rechecks context before committing. Only absent
   ticket tag assignments and contact records are removed; tag definitions remain.
@@ -34,9 +34,14 @@ Changes:
   A single recovery checkpoint and the new state are committed in one storage write.
   Restore preserves subsequent edits and pauses automatic cleanup. No history cleanup
   is performed from individual ticket pages or partial visible rows.
-- CSV uses only open references from a fresh scan, rather than historic storage.
+- CSV uses a persisted verified open-queue list with current marks. The popup and filename
+  disclose its timestamp; subsequent server changes require a new scan. Once saved, downloads
+  work without an AssystNet tab. With no saved list, CSV scans the visible own queue. Importing
+  JSON or undoing cleanup invalidates this computer-local list; it is excluded from JSON.
+- New profiles have no preset tags. Explicit existing definitions and legacy referenced
+  assignments are preserved. No migration removes user tags.
 
-Testing: 61 automated Node tests (including four Chrome/Firefox portability tests), twenty simulated-DOM scenarios and four Chromium
+Testing: 69 automated Node tests (including four Chrome/Firefox portability tests), twenty-four simulated-DOM scenarios and four Chromium
 interface/Blob checks with simulated extension APIs passed. Firefox ZIP web-ext
 10.8.0 lint: zero errors, warnings and notices. Firefox/live institutional integration
 must still be tested by an authorized operator. Filter detection depends on the host DOM.
@@ -47,7 +52,7 @@ data. Live institutional access may require an authorized account. No credential
 operational backups or real ticket details are included in the submission.
 
 
-Version 3.7.0 adds autoRefresh.js. It is disabled by default; interval defaults to
+The optional autoRefresh.js introduced in 3.7.0 is retained in 3.8.0. It is disabled by default; interval defaults to
 60 seconds, with choices 30/60/120/300 seconds. Background tabs are opt-in. A single
 controller timeout is canceled/rescheduled on settings, visibility and navigation.
 It clicks the supplied native eventMonitorRefreshButton on #eventMonitor/4, or the

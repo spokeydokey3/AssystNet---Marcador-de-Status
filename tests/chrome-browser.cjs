@@ -7,7 +7,7 @@ const { chromium } = require(process.env.ASSYST_PLAYWRIGHT_MODULE || 'playwright
 const { background, root } = require('./harness.cjs');
 
 (async () => {
-  const bg = background();
+  const bg = background({ assyst_tags: [{ id: 'REDMINE', label: 'Tag de teste', bg: '#DC2626' }] });
   const browser = await chromium.launch({ executablePath: process.env.ASSYST_CHROMIUM_PATH || '/usr/bin/chromium', headless: true,
     args: ['--no-sandbox'] });
   const context = await browser.newContext();
@@ -72,6 +72,7 @@ const { background, root } = require('./harness.cjs');
     assert.equal((await bg.send('get')).state.assyst_contacts.R2478233.checks.filter(Boolean).length, 1);
     console.log('PASS Chromium UI: SPA navigation blocks stale controls and preserves full R references.');
 
+    await page.evaluate(() => { history.pushState(null, '', '#eventMonitor/4'); });
     const captured = await page.evaluate(() => new Promise((resolve, reject) => {
       for (const listener of window.testChromeListeners) {
         const keep = listener({ type: 'assyst-queue', action: 'capture' }, { id: 'test' }, resolve);

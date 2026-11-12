@@ -15,7 +15,7 @@ test('version 3 unversioned backups and version 2 custom tags migrate', () => {
   assert.equal(current.assyst_tags[0].label, 'Ação urgente');
   const legacy = data.parseBackup({ assyst_custom_tags: [{ key: 'VIP', label: 'VIP antigo', bg: '#abc', color: '#fff' }],
     assyst_ticket_tags: { R12: 'VIP', '13': 'ATENDIMENTO' } });
-  assert.equal(legacy.assyst_tags.length, 5);
+  assert.equal(legacy.assyst_tags.length, 2);
   assert.equal(legacy.assyst_tags.find(item => item.id === 'VIP').bg, '#AABBCC');
   assert.equal(legacy.assyst_ticket_tags.R12, 'VIP');
 });

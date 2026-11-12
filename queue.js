@@ -28,17 +28,35 @@
     return text.trim();
   }
 
+  function view() {
+    let hash = location.hash;
+    try { hash = window.top.location.hash || hash; } catch { /* Frame-local route. */ }
+    if (!/^#homepage\/?$/i.test(hash)) return { root: document.body, hash, home: false };
+    const headers = [...document.querySelectorAll('.axios-homepage-titlebar-outer')].filter(node => shown(node) &&
+      [...node.querySelectorAll('h2.axios-homepage-titlebar-inner')].some(title => fold(title.textContent) === 'chamados atribuidos a mim'));
+    if (headers.length !== 1) throw new Error('Não encontrei um único painel “Chamados atribuídos a mim” na Página Inicial.');
+    for (let root = headers[0].parentElement; root && root !== document.body; root = root.parentElement) {
+      if (root.querySelectorAll('.axios-homepage-titlebar-outer').length !== 1) break;
+      if (root.querySelector('.dgrid, [role="grid"]')) return { root, hash, home: true };
+    }
+    throw new Error('Não consegui identificar a tabela do painel da sua fila.');
+  }
+
   function grids() {
-    return [...new Set([...document.querySelectorAll(`${CELL}, th.field-eventRef, .dgrid-header .field-eventRef`)].filter(shown)
+    let root;
+    try { root = view().root; } catch { return []; }
+    return [...new Set([...root.querySelectorAll(`${CELL}, th.field-eventRef, .dgrid-header .field-eventRef`)].filter(shown)
       .map(cell => cell.closest('.dgrid, [role="grid"]')).filter(Boolean))];
   }
 
   function context(grid) {
+    const { root, home } = view();
+    if (!root.contains(grid)) throw new Error('A tabela não pertence à sua fila.');
     const wanted = 'chamados atribuidos a mim';
     let ownQueue = false;
     let ownCounter = false;
     const signatures = [];
-    for (const select of document.querySelectorAll('select')) {
+    for (const select of root.querySelectorAll('select')) {
       if (select.closest(OWNED) || !shown(select)) continue;
       if ([...select.options].some(option => fold(option.textContent) === wanted)) {
         const selected = fold(select.selectedOptions[0]?.textContent || '');
@@ -48,7 +66,7 @@
       }
     }
     const totals = new Set();
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     while (walker.nextNode()) {
       const node = walker.currentNode.parentElement;
       if (!node || node.closest(`${OWNED}, script, style, option, .dgrid-row, .axios-offscreen-content`) || !shown(node)) continue;
@@ -73,18 +91,16 @@
     const header = headers.find(node => fold(node.textContent).replace(/[()]/g, '') === 'status texto');
     if (!header) throw new Error('Não encontrei a coluna “Status (Texto)”. Não foi gerado um relatório incompleto.');
     const field = [...header.classList].find(name => name.startsWith('field-'));
-    return { total, signature: JSON.stringify(signatures), field, index: headers.indexOf(header), ownCounter, selectedOwnQueue: signatures.length > 0 };
+    return { total, signature: JSON.stringify([home, ...signatures]), field, index: headers.indexOf(header), ownCounter, selectedOwnQueue: signatures.length > 0, home };
   }
 
   function cleanupContext(grid) {
-    let hash = location.hash;
-    try { hash = window.top.location.hash || hash; } catch { /* Use the frame route if top is cross-origin. */ }
-    // Destructive synchronization is limited to the own-queue route observed in this deployment.
-    if (!/^#eventMonitor\/4\/?$/i.test(hash)) throw new Error('Abra a tela completa “Chamados atribuídos a mim” para limpar.');
+    const { hash, root, home } = view();
+    if (!home && !/^#eventMonitor\/4\/?$/i.test(hash)) throw new Error('Abra a Página Inicial ou “Chamados atribuídos a mim” para conferir a fila.');
     const current = context(grid);
-    if (!current.ownCounter && !current.selectedOwnQueue) throw new Error('O nome da fila não foi confirmado no contador ou seletor. Nada será limpo.');
+    if (!home && !current.ownCounter && !current.selectedOwnQueue) throw new Error('O nome da fila não foi confirmado no contador ou seletor. Nada será limpo.');
     const neutral = value => ['', 'todos', 'todas', 'all', 'qualquer', 'sem filtro', '{}', '[]'].includes(fold(value));
-    for (const node of document.querySelectorAll('input, textarea, select, [role="combobox"]')) {
+    for (const node of root.querySelectorAll('input, textarea, select, [role="combobox"]')) {
       if (node.closest(OWNED)) continue;
       const hiddenFilter = node.matches('input[type="hidden"]') && /filter|filtro|search|pesquis|query/i.test((node.name || '') + ' ' + node.id);
       if (!shown(node) && !hiddenFilter) continue;
@@ -100,8 +116,11 @@
         if (!neutral(value) && fold(value) !== 'chamados atribuidos a mim') throw new Error('Há busca ou filtro preenchido. Nada será limpo.');
       }
     }
-    for (const node of document.querySelectorAll('[aria-busy="true"], [role="dialog"][aria-modal="true"], .dgrid-loading, .dgrid-preload-loading, .filter-active, .active-filter, .dgrid-filtered, [data-filter-active="true"]')) {
+    for (const node of root.querySelectorAll('[aria-busy="true"], [role="dialog"][aria-modal="true"], .dgrid-loading, .dgrid-preload-loading, .filter-active, .active-filter, .dgrid-filtered, [data-filter-active="true"]')) {
       if (!node.closest(OWNED) && shown(node)) throw new Error('A fila está carregando ou tem filtros ativos. Nada será limpo.');
+    }
+    for (const node of document.querySelectorAll('input[type="password"], [role="dialog"][aria-modal="true"]')) {
+      if (!node.closest(OWNED) && shown(node)) throw new Error('Confirme o acesso e feche os diálogos antes de conferir a fila.');
     }
     return { ...current, unfiltered: true, scope: JSON.stringify([hash, current.total, current.signature, current.field, current.index]) };
   }
@@ -115,13 +134,13 @@
       const candidates = grids();
       if (candidates.length !== 1) throw new Error('Não encontrei uma única tabela da fila. Recarregue o AssystNet.');
       [grid] = candidates;
-      initial = cleanup ? cleanupContext(grid) : context(grid);
+      initial = cleanupContext(grid);
       const href = location.href;
       const records = new Map(), positions = new Map();
       const deadline = Date.now() + 45000;
       const assertContext = () => {
         if (!grid.isConnected || location.href !== href) throw new Error('A página mudou durante a leitura. Exporte novamente.');
-        const current = cleanup ? cleanupContext(grid) : context(grid);
+        const current = cleanupContext(grid);
         if (current.total !== initial.total || current.signature !== initial.signature || current.field !== initial.field || current.index !== initial.index) {
           throw new Error('A fila mudou durante a leitura. Aguarde a atualização e exporte novamente.');
         }

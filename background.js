@@ -25,6 +25,7 @@ async function readState() {
   state.assyst_schema_version = 3;
   state.assyst_auto_sync = raw.assyst_auto_sync !== false;
   state.assyst_refresh_settings = AssystData.refreshSettings(raw.assyst_refresh_settings);
+  state.assyst_queue_snapshot = AssystData.queueSnapshot(raw.assyst_queue_snapshot);
   state.assyst_last_queue_sync = raw.assyst_last_queue_sync || null;
   state.assyst_has_cleanup_backup = raw.assyst_has_cleanup_backup === true;
   state.assyst_has_upgrade_backup = raw.assyst_has_upgrade_backup === true || metadata.assyst_has_upgrade_backup === true;
@@ -37,11 +38,12 @@ async function readState() {
   return state;
 }
 
-async function download(state, format, original = false, tickets) {
+async function download(state, format, original = false, tickets, confirmedAt) {
   const csv = format === 'csv';
   const text = csv ? AssystData.csv(state, tickets) : original ? JSON.stringify(state, null, 2) : AssystData.backup(state);
   const mime = csv ? 'text/csv;charset=utf-8' : 'application/json;charset=utf-8';
-  const filename = `assyst_${csv ? 'fila_atual' : original ? 'backup_anterior' : 'backup'}_${new Date().toISOString().slice(0, 10)}.${csv ? 'csv' : 'json'}`;
+  const filename = csv && confirmedAt ? `assyst_fila_conferida_${new Date(confirmedAt).toISOString().replace(/[:.]/g, '-')}.csv` :
+    `assyst_${csv ? 'fila_atual' : original ? 'backup_anterior' : 'backup'}_${new Date().toISOString().slice(0, 10)}.${csv ? 'csv' : 'json'}`;
   // Chrome service workers cannot create Blob URLs. Firefox retains its event-page path.
   if (globalThis.AssystDownloads) return AssystDownloads.download({ text, mime, filename });
   const blob = new Blob([text], { type: mime });
@@ -94,7 +96,7 @@ async function readQueue(sourceTabId, cleanup = false) {
     try { await browser.tabs.sendMessage(tab.id, { type: 'assyst-queue', action: 'probe', token }); }
     catch { /* Frames announce themselves through queueReady messages. */ }
     await new Promise(resolve => setTimeout(resolve, 350));
-    if (job.frames.size !== 1) throw new Error('Não encontrei uma única tabela da sua fila. Abra “Chamados atribuídos a mim” e recarregue o AssystNet.');
+    if (job.frames.size !== 1) throw new Error('Não encontrei uma única tabela da sua fila. Abra a Página Inicial ou “Chamados atribuídos a mim” no AssystNet e aguarde carregar.');
     const result = await browser.tabs.sendMessage(tab.id, { type: 'assyst-queue', action: 'capture', cleanup },
       { frameId: [...job.frames][0] });
     if (!result?.ok) throw new Error(result?.error || 'Não foi possível conferir a fila atual.');
@@ -108,7 +110,8 @@ async function readQueue(sourceTabId, cleanup = false) {
       await new Promise(resolve => setTimeout(resolve, 700));
       const second = await browser.tabs.sendMessage(tab.id, { type: 'assyst-queue', action: 'capture', cleanup: true }, { frameId: [...job.frames][0] });
       validateMembership(second);
-      if (result.scope !== second.scope || JSON.stringify([...result.queueTickets].sort()) !== JSON.stringify([...second.queueTickets].sort())) {
+      if (result.scope !== second.scope || JSON.stringify([...result.queueTickets].sort()) !== JSON.stringify([...second.queueTickets].sort()) ||
+          JSON.stringify([...result.tickets].sort()) !== JSON.stringify([...second.tickets].sort())) {
         throw new Error('A fila mudou entre as duas leituras. Nada foi limpo.');
       }
     }
@@ -117,10 +120,13 @@ async function readQueue(sourceTabId, cleanup = false) {
 }
 
 function validateMembership(result) {
+  const members = new Set(Array.isArray(result?.queueTickets) ? result.queueTickets : []);
   if (!result?.ok || !result.complete || result.unfiltered !== true || typeof result.scope !== 'string' ||
-      !Number.isSafeInteger(result.total) || result.total < 0 || !Array.isArray(result.queueTickets) ||
-      result.queueTickets.length !== result.total || new Set(result.queueTickets).size !== result.total ||
-      result.queueTickets.some(id => typeof id !== 'string' || !/^[A-Za-z]*\d+$/.test(id))) {
+      !Number.isSafeInteger(result.total) || result.total < 0 || result.total > 100000 || !Array.isArray(result.queueTickets) ||
+      result.queueTickets.length !== result.total || members.size !== result.total ||
+      result.queueTickets.some(id => typeof id !== 'string' || !/^[A-Za-z]*\d+$/.test(id)) ||
+      !Array.isArray(result.tickets) || new Set(result.tickets).size !== result.tickets.length ||
+      result.tickets.some(id => !members.has(id))) {
     throw new Error(result?.error || 'A fila completa e sem filtros não foi confirmada. Nada foi limpo.');
   }
 }
@@ -132,6 +138,14 @@ function serialized(operation) {
 }
 
 async function exportQueue(sourceTabId) {
+  const saved = await serialized(async () => {
+    const state = await readState();
+    const snapshot = state.assyst_queue_snapshot;
+    if (!snapshot) return null;
+    return { ...await download(state, 'csv', false, snapshot.tickets, snapshot.at),
+      count: snapshot.tickets.length, confirmedAt: snapshot.at, savedQueue: true };
+  });
+  if (saved) return saved;
   const { result } = await readQueue(sourceTabId);
   return serialized(async () => {
     const state = await readState();
@@ -143,7 +157,6 @@ async function syncQueue(message) {
   const initial = await serialized(readState);
   if (message.automatic && !initial.assyst_auto_sync) return { paused: true, state: initial };
   const { result, tab, frameId } = await readQueue(message.sourceTabId, true);
-  if (!result.total && !message.allowEmpty) return { needsEmptyConfirmation: true, total: 0 };
   return serialized(async () => {
     const state = await readState();
     if (message.automatic && !state.assyst_auto_sync) return { paused: true, state };
@@ -151,6 +164,14 @@ async function syncQueue(message) {
     const final = await browser.tabs.sendMessage(tab.id, { type: 'assyst-queue', action: 'verify' }, { frameId });
     if (currentTab.url !== tab.url || !final?.ok || final.scope !== result.scope || final.total !== result.total || !final.unfiltered) {
       throw new Error('A página ou os filtros mudaram. Nada foi limpo.');
+    }
+    const snapshot = { total: result.total, tickets: [...result.tickets], at: new Date().toISOString() };
+    if (!result.total && !message.allowEmpty) {
+      // A confirmed empty report is safe; deleting all marks still needs manual confirmation.
+      state.assyst_queue_snapshot = snapshot;
+      state.assyst_revision++;
+      await browser.storage.local.set(state);
+      return { needsEmptyConfirmation: true, total: 0, state };
     }
     const keep = new Set(result.queueTickets);
     const removed = [...new Set([...Object.keys(state.assyst_ticket_tags), ...Object.keys(state.assyst_contacts)])].filter(id => !keep.has(id));
@@ -160,7 +181,8 @@ async function syncQueue(message) {
       state.assyst_has_cleanup_backup = true;
     }
     for (const id of removed) { delete state.assyst_ticket_tags[id]; delete state.assyst_contacts[id]; }
-    state.assyst_last_queue_sync = { total: result.total, removed: removed.length, at: new Date().toISOString() };
+    state.assyst_last_queue_sync = { total: result.total, removed: removed.length, at: snapshot.at };
+    state.assyst_queue_snapshot = snapshot;
     state.assyst_revision++;
     // One write commits the recovery copy and the cleanup together.
     await browser.storage.local.set({ ...metadata, ...state });
@@ -192,6 +214,7 @@ async function handle(message) {
       restored++;
     }
     state.assyst_auto_sync = false;
+    state.assyst_queue_snapshot = null;
     state.assyst_has_cleanup_backup = false;
     state.assyst_revision++;
     await browser.storage.local.set({ ...state, assyst_cleanup_backup: null });
@@ -249,6 +272,8 @@ async function handle(message) {
     state.assyst_tags = result.assyst_tags;
     state.assyst_ticket_tags = result.assyst_ticket_tags;
     state.assyst_contacts = result.assyst_contacts;
+    // A JSON backup carries marks, not proof of current queue membership on this computer.
+    state.assyst_queue_snapshot = null;
   } else throw new Error('Operação desconhecida.');
   state.assyst_revision += 1;
   await browser.storage.local.set(state);

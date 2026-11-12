@@ -28,7 +28,7 @@
     <section class="card" aria-labelledby="syncTitle">
       <h2 id="syncTitle">Manter somente minha fila</h2>
       <label><input type="checkbox" id="autoSync"> Limpar automaticamente ao conferir a fila</label>
-      <p class="help">Ao abrir “Chamados atribuídos a mim”, a extensão percorre a fila sem filtros e confere duas leituras completas. Tags aplicadas e contatos de chamados ausentes são removidos; as definições das tags continuam disponíveis.</p>
+      <p class="help">Na Página Inicial ou em “Chamados atribuídos a mim”, a extensão percorre sua fila sem filtros e confere duas leituras completas. Tags aplicadas e contatos de chamados ausentes são removidos; as definições das tags continuam disponíveis.</p>
       <p class="help" id="queueStatus">Abra sua fila completa e atualizada no AssystNet.</p>
       <button id="btnSync">Conferir e limpar agora</button>
       <button id="btnRestoreCleanup" class="text-button" hidden>Desfazer a última limpeza e pausar</button>
@@ -69,10 +69,10 @@
       <p id="ticketListCount" class="help"></p>
     </details>
     <section class="card" aria-labelledby="reportTitle">
-      <h2 id="reportTitle">Relatório da minha fila atual</h2>
-      <p class="help">Abra “Chamados atribuídos a mim”, retire filtros de busca, atualize a fila no AssystNet e exporte pelo ícone da extensão nessa aba. A tabela será percorrida automaticamente; aguarde sem alterar a fila.</p>
-      <button id="btnCSV" class="primary">Exportar minha fila atual (CSV)</button>
-      <p class="help">Somente chamados com status Aberto na fila conferida, ordenados por tag e número. Inclui “Sem tag”, as datas das marcações e informações de acompanhamento. Se o total não puder ser conferido, a exportação será interrompida.</p>
+      <h2 id="reportTitle">Relatório da minha fila</h2>
+      <p id="reportStatus" class="help"></p>
+      <button id="btnCSV" class="primary">Baixar planilha da fila (CSV)</button>
+      <p class="help">Inclui os chamados abertos na última conferência, mesmo sem tag, ordenados por tag e número. As marcações são as atuais. A fila é conferida automaticamente na Página Inicial ou em “Chamados atribuídos a mim”, quando completa e sem filtros. Alterações posteriores no AssystNet aparecem após nova conferência.</p>
     </section>
     <section id="backupSection" class="card" aria-labelledby="backupTitle">
       <h2 id="backupTitle">Troca de computador</h2>

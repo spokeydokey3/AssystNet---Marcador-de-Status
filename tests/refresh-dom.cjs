@@ -7,7 +7,7 @@ const { root } = require('./harness.cjs');
 const KEY = 'assyst_refresh_settings';
 const prefs = (overrides = {}) => ({ enabled: true, intervalSeconds: 30, background: false, ...overrides });
 
-async function setup({ hash = '#eventMonitor/4', settings = prefs(), complete = true } = {}) {
+async function setup({ hash = '#eventMonitor/4', settings = prefs(), complete = true, origin = 'https://cati.tjce.jus.br' } = {}) {
   const dom = new JSDOM(`<!doctype html><meta charset="utf-8"><body tabindex="-1">
     <input id="editor"><div id="dialog" role="dialog" hidden></div>
     <section id="assigned"><select><option>Chamados Atribuídos a mim</option><option>Outra fila</option></select>
@@ -20,7 +20,7 @@ async function setup({ hash = '#eventMonitor/4', settings = prefs(), complete = 
       <section><div class="axios-homepage-titlebar-outer"><h2 class="axios-homepage-titlebar-inner">Outros chamados</h2>
         <span role="button" data-component-tag="refresh" data-test="wrong"><span class="refreshButtonIcon"></span></span></div>
         <div class="dgrid">Outro painel</div></section>
-    </main>`, { url: 'https://cati.tjce.jus.br/assystnet/' + hash, runScripts: 'outside-only', pretendToBeVisual: true });
+    </main>`, { url: origin + '/assystnet/' + hash, runScripts: 'outside-only', pretendToBeVisual: true });
   const w = dom.window, doc = w.document;
   w.HTMLElement.prototype.getClientRects = function() { return this.closest('[hidden]') ? [] : [{ width: 100, height: 20 }]; };
   const clock = FakeTimers.withGlobal(w).install({ now: Date.UTC(2026, 10, 12, 12), toFake: ['Date', 'setTimeout', 'clearTimeout'] });
@@ -198,4 +198,18 @@ test('page lifecycle clears schedules and BFCache restore does not duplicate lis
     e.w.dispatchEvent(restored); assert.equal(e.clock.countTimers(), 1);
     await e.clock.tickAsync(32000); assert.deepEqual(e.clicks, ['assigned']);
   } finally { e.close(); }
+});
+
+
+test('native refresh supports both permitted hosts and both queue views', async () => {
+  for (const origin of ['http://cati.tj.ce.gov.br', 'https://cati.tjce.jus.br']) {
+    for (const hash of ['#homepage', '#eventMonitor/4']) {
+      const e = await setup({ hash, origin });
+      try {
+        await e.clock.tickAsync(32000);
+        assert.deepEqual(e.clicks, [hash === '#homepage' ? 'home' : 'assigned']);
+        assert.equal(e.finished, 1);
+      } finally { e.close(); }
+    }
+  }
 });

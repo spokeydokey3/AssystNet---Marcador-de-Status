@@ -23,7 +23,7 @@ def contents(browser='firefox', sources=False):
     files = OrderedDict((name, (ROOT / name).read_bytes()) for name in FILES)
     if sources:
         names = list(CHROME_FILES) + ['build.py', 'README.md', 'CHROME.md', 'CONSTRUIR.md',
-                                     'PUBLICAR.md', 'NOTAS-AMO.txt', 'REPRODUCAO.txt', 'VALIDACAO.md', 'AUTO_REFRESH.md']
+                                     'PUBLICAR.md', 'NOTAS-AMO.txt', 'REPRODUCAO.txt', 'VALIDACAO.md', 'AUTO_REFRESH.md', 'QUEUE_REPORT.md']
         names += [str(p.relative_to(ROOT)) for p in sorted((ROOT / 'tests').glob('*.cjs'))]
         for name in names:
             files[name] = (ROOT / name).read_bytes()

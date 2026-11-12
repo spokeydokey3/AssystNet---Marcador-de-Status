@@ -2,14 +2,15 @@
 
 // Shared by the popup, content script and background. No network or sync storage.
 globalThis.AssystData = (() => {
-  const DEFAULT_TAGS = [
+  // Used only to recover definitions actually referenced by legacy assignments.
+  const LEGACY_TAGS = [
     { id: 'REDMINE', label: 'Redmine', bg: '#DC2626', color: '#FFFFFF' },
     { id: 'ATENDIMENTO', label: 'Em Atendimento', bg: '#2563EB', color: '#FFFFFF' },
     { id: 'AGUARDANDO', label: 'Aguardando Resposta', bg: '#D97706', color: '#FFFFFF' },
     { id: 'ERRO_GERAL', label: 'Erro Geral', bg: '#7C3AED', color: '#FFFFFF' }
   ];
   const KEYS = ['assyst_tags', 'assyst_custom_tags', 'assyst_ticket_tags', 'assyst_contacts', 'assyst_revision',
-    'assyst_schema_version', 'assyst_has_upgrade_backup', 'assyst_auto_sync', 'assyst_last_queue_sync', 'assyst_has_cleanup_backup', 'assyst_refresh_settings'];
+    'assyst_schema_version', 'assyst_has_upgrade_backup', 'assyst_auto_sync', 'assyst_last_queue_sync', 'assyst_has_cleanup_backup', 'assyst_refresh_settings', 'assyst_queue_snapshot'];
   const own = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
   const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
@@ -19,6 +20,17 @@ globalThis.AssystData = (() => {
     if (strict && !valid) throw new Error('Escolha um intervalo de 30 segundos, 1, 2 ou 5 minutos e opções válidas.');
     if (!valid) return { enabled: false, intervalSeconds: 60, background: false };
     return { enabled: value.enabled, intervalSeconds: value.intervalSeconds, background: value.background };
+  }
+
+  function queueSnapshot(value) {
+    if (!record(value) || typeof value.at !== 'string' || !Number.isFinite(Date.parse(value.at)) ||
+        !Number.isSafeInteger(value.total) || value.total < 0 || value.total > 100000 ||
+        !Array.isArray(value.tickets) || value.tickets.length > value.total ||
+        new Set(value.tickets).size !== value.tickets.length) return null;
+    try {
+      if (value.tickets.some(id => identifier(id, 'Número do chamado') !== id)) return null;
+      return { at: value.at, total: value.total, tickets: [...value.tickets] };
+    } catch { return null; }
   }
 
   function hex(value) {
@@ -65,7 +77,7 @@ globalThis.AssystData = (() => {
       // The old inline modal had no length limit. Keep those existing names intact.
       tags = data.assyst_tags.map(value => tag(value, false, true));
     } else {
-      tags = DEFAULT_TAGS.map(value => tag(value));
+      tags = [];
       if (own(data, 'assyst_custom_tags')) {
         if (!Array.isArray(data.assyst_custom_tags)) throw new Error('A lista de tags antigas é inválida.');
         for (const old of data.assyst_custom_tags) {
@@ -88,7 +100,8 @@ globalThis.AssystData = (() => {
       const id = identifier(status, 'Status do chamado');
       // Preserve assignments from older backups, including tags whose definition was lost.
       if (!ids.has(id)) {
-        const recovered = tag({ id, label: id.slice(0, 80), bg: '#64748B' });
+        const old = !own(data, 'assyst_tags') && LEGACY_TAGS.find(item => item.id === id);
+        const recovered = tag(old || { id, label: id.slice(0, 80), bg: '#64748B' });
         tags.push(recovered);
         ids.add(id);
       }
@@ -229,5 +242,5 @@ globalThis.AssystData = (() => {
   }
 
   return { KEYS, normalize, parseBackup, merge, backup, csv, tag, hex, textColor, identifier,
-    today, day, addDays, displayDate, contact, contactInfo, changeContact, refreshSettings };
+    today, day, addDays, displayDate, contact, contactInfo, changeContact, refreshSettings, queueSnapshot };
 })();

@@ -1,4 +1,4 @@
-# Atualização automática nativa — 3.7.0
+# Atualização automática nativa — 3.8.0
 
 O recurso aciona o botão Atualizar do próprio AssystNet. Não usa recarregamento do navegador,
 atalhos de teclado nem reproduz requisições internas. Não altera status, atribuição ou conteúdo
@@ -52,8 +52,9 @@ sucesso apenas porque o botão foi clicado. Se isso acontecer no AssystNet, insp
 de carregamento para adaptar a detecção antes de distribuir amplamente.
 
 Atualizar os dados no AssystNet e limpar marcações locais são opções distintas. A limpeza
-continua limitada à fila completa própria, sem filtros, com cópia de recuperação. Ela não é
-executada a partir do painel da Página Inicial.
+continua limitada à fila completa própria, sem filtros, com cópia de recuperação. Ela também
+pode conferir o painel isolado “Chamados Atribuídos a mim” na Página Inicial. Outros painéis
+não autorizam exclusões. Veja QUEUE_REPORT.md para a lista salva usada no CSV.
 
 ## Validar no ambiente real
 

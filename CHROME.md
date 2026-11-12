@@ -1,4 +1,4 @@
-# AssystNet para Chrome — 3.7.0
+# AssystNet para Chrome — 3.8.0
 
 Esta é uma extensão Manifest V3 para Chrome desktop 116 ou posterior. Usa os mesmos
 dados, tags, quatro tentativas de contato, interface e relatórios da versão Firefox.
@@ -6,7 +6,7 @@ dados, tags, quatro tentativas de contato, interface e relatórios da versão Fi
 
 ## Instalar para testar
 
-1. Baixe e extraia `AssystNet-3.7.0-chrome.zip` em uma pasta permanente.
+1. Baixe e extraia `AssystNet-3.8.0-chrome.zip` em uma pasta permanente.
 2. Abra `chrome://extensions` e ative **Modo do desenvolvedor**.
 3. Clique em **Carregar sem compactação** e selecione a pasta extraída que contém `manifest.json`.
 4. No menu de extensões, fixe o ícone do AssystNet se desejar.
@@ -29,7 +29,7 @@ nesse caso a distribuição precisa ser combinada com a TI.
 3. Nessa janela, escolha o JSON, confira a prévia e confirme **Mesclar** ou **Substituir**.
 4. Confira alguns chamados, tags e tentativas antes de abandonar o perfil anterior.
 
-JSON é o formato de restauração. CSV é o relatório da fila atual. Os dois navegadores e os
+JSON é o formato de restauração. CSV é o relatório da última fila conferida, cuja data aparece no popup e no nome do arquivo. Os dois navegadores e os
 diferentes computadores têm armazenamentos separados; não há sincronização automática.
 O JSON v3 é o mesmo nos dois navegadores e preserva as posições das quatro caixas, tags,
 cores, referências completas e datas informativas. Os formatos antigos, inclusive os backups
@@ -49,8 +49,8 @@ pode apagá-los. Continuem exportando o JSON ao trocar de computador.
 - Abrir o chamado por `#events/2142782` e por uma referência com prefixo, como `#events/R2478233`.
 - Navegar entre chamados e rolar a fila; a marcação deve permanecer ligada ao número correto.
 - Exportar/importar JSON entre Chrome e Firefox, conferindo as marcações.
-- Exportar CSV com a fila “Chamados atribuídos a mim” aberta e atualizada. Somente abertos
-  da fila conferida devem aparecer, ordenados por tag e referência.
+- Conferir a fila completa na Página Inicial ou em “Chamados atribuídos a mim” e baixar CSV
+  de qualquer tela. Somente abertos da conferência devem aparecer, com marcações atuais.
 - Fechar completamente e reabrir o Chrome no mesmo perfil, conferindo os dados.
 - Abrir uma referência pela Página Inicial e conferir os mesmos controles da fila.
 - Conferir a limpeza da fila sem filtros, a recuperação da última limpeza e a pausa automática.
@@ -59,9 +59,19 @@ Cada marcação recebe a data atual, que pode não ser a data do contato real. D
 e referência de sete dias são apenas informativos; não há bloqueio por intervalo, fins de
 semana, feriados ou resposta informada. A extensão não autoriza nem realiza encerramentos.
 
+## Tags e planilha
+
+Novas instalações começam sem tags; cada operador cria as suas. Atualizações preservam tags e
+marcações existentes. Depois da conferência automática, o CSV pode ser baixado de qualquer tela,
+sem reabrir a fila. A lista salva contém os chamados abertos da conferência, incluindo “Sem tag”;
+as marcações são lidas no momento do download. O popup e o nome do arquivo indicam a data da
+lista. Alterações posteriores no servidor exigem nova conferência. A lista não viaja no JSON e
+é invalidada ao importar JSON ou desfazer limpeza. Ambos os hosts do manifesto usam os mesmos
+recursos e dados no mesmo perfil. Veja QUEUE_REPORT.md.
+
 ## Atualização automática da lista
 
-Na versão 3.7.0, ative “Acionar automaticamente o botão Atualizar” no popup e escolha
+Na versão 3.8.0, ative “Acionar automaticamente o botão Atualizar” no popup e escolha
 30 segundos, 1, 2 ou 5 minutos. O padrão é desligado, um minuto, sem segundo plano.
 O recurso usa os botões nativos da Página Inicial e da fila própria, sem recarregar a página.
 São adiados cliques durante edição, seleção, carregamento, gravação ou conferência da fila.
@@ -72,7 +82,8 @@ As preferências de atualização são locais e não entram nesse JSON.
 
 ## Limpeza da fila
 
-Está ativada por padrão ao abrir/atualizar “Chamados atribuídos a mim” na rota #eventMonitor/4.
+Está ativada por padrão ao abrir/atualizar o painel próprio na Página Inicial (#homepage)
+ou “Chamados atribuídos a mim” na rota #eventMonitor/4. Outros painéis são ignorados.
 São exigidas duas leituras completas da grade e uma nova verificação do contexto. Filtros
 detectados, carregamento, outra fila ou leitura incompleta impedem exclusões. Somente vínculos
 de tags e contatos de chamados ausentes são removidos; as definições das tags permanecem.
@@ -83,7 +94,7 @@ substitui essa cópia. Confira o comportamento no AssystNet real antes de distri
 
 ## Publicar para a equipe
 
-Depois de testar no ambiente real, envie `AssystNet-3.7.0-chrome.zip` como atualização no mesmo cadastro da Chrome Web Store.
+Depois de testar no ambiente real, envie `AssystNet-3.8.0-chrome.zip` como atualização no mesmo cadastro da Chrome Web Store.
 O ZIP já contém o manifesto e os arquivos de execução na raiz. A listagem, imagens, justificativas
 das permissões e declarações de privacidade são preenchidas no painel; esta entrega não publica na loja.
 Após a instalação da loja, as atualizações da mesma extensão mantêm o ID e o armazenamento.
@@ -102,6 +113,6 @@ O acesso está restrito aos dois endereços AssystNet já usados pela equipe.
 python3 build.py --browser chrome
 ```
 
-O resultado é `releases/AssystNet-3.7.0-chrome.zip`. Veja `CONSTRUIR.md` para todos os comandos,
-requisitos e verificações de reprodução. O arquivo `AssystNet-3.7.0-fontes.zip` contém o código
+O resultado é `releases/AssystNet-3.8.0-chrome.zip`. Veja `CONSTRUIR.md` para todos os comandos,
+requisitos e verificações de reprodução. O arquivo `AssystNet-3.8.0-fontes.zip` contém o código
 compartilhado e os adaptadores dos dois navegadores.

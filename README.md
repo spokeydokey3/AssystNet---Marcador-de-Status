@@ -1,9 +1,33 @@
-# AssystNet · Marcador de Status — Firefox e Chrome 3.7.0
+# AssystNet · Marcador de Status — Firefox e Chrome 3.8.0
 
 Extensão Manifest V3, JavaScript/HTML/CSS puros, sem frameworks, bundlers ou dependências
 de execução. Os dados ficam exclusivamente em `browser.storage.local`, no perfil do navegador.
-As edições Firefox e Chrome 3.7.0 usam o mesmo código de dados, interface e fila. Os manifestos
+As edições Firefox e Chrome 3.8.0 usam o mesmo código de dados, interface e fila. Os manifestos
 e downloads têm adaptação por navegador. Veja CHROME.md para atualizar a instalação Chrome.
+
+## Tags criadas por cada operador
+
+Novas instalações começam sem tags. Crie as suas no popup ou diretamente no seletor do chamado.
+As tags e marcações já existentes são preservadas ao atualizar. Backups antigos recuperam somente
+as definições legadas necessárias às suas marcações, além das tags explicitamente salvas.
+
+## Planilha sem voltar à lista
+
+Após uma conferência completa da fila, baixe o CSV de qualquer tela pelo popup da extensão.
+A lista dos chamados abertos fica salva localmente com a data da conferência. Inclui chamados
+sem tag e usa as tags/caixas atuais. Não exporta todos os registros históricos do armazenamento.
+A Página Inicial também permite a conferência automática do painel “Chamados Atribuídos a mim”.
+O popup e o nome do CSV indicam a data da fila; mudanças posteriores no servidor requerem nova
+conferência. Sem fila salva, a exportação tenta ler a fila visível em uma das duas telas.
+Importar JSON ou desfazer uma limpeza invalida essa lista; tags e contatos são preservados.
+Veja [QUEUE_REPORT.md](QUEUE_REPORT.md).
+
+Os mesmos recursos estão habilitados nos ambientes interno e externo:
+- http://cati.tj.ce.gov.br/assystnet/
+- https://cati.tjce.jus.br/assystnet/
+
+No mesmo perfil/navegador, ambos usam as mesmas marcações. Entre computadores ou navegadores,
+transfira o backup JSON; a fila conferida deve ser lida novamente no destino.
 
 ## Atualizar os dados no AssystNet
 
@@ -39,7 +63,7 @@ Informar resposta mantém as marcações; limpar o acompanhamento inteiro ainda 
 
 ## Limpeza automática da fila
 
-Ao abrir/atualizar a fila própria `#eventMonitor/4`, a extensão tenta duas varreduras completas
+Ao abrir/atualizar o painel próprio na Página Inicial `#homepage` ou a fila `#eventMonitor/4`, a extensão tenta duas varreduras completas
 do dgrid, conferindo referências únicas, contador, nome da fila, filtros e estabilidade da página.
 Os dois resultados precisam coincidir, e o contexto é verificado novamente antes da gravação.
 São removidos os vínculos de tags e os contatos de chamados ausentes. As definições das tags
@@ -51,7 +75,7 @@ mudanças de página impedem a limpeza. Uma fila vazia nunca apaga tudo automati
 use **Conferir e limpar agora** e confirme a leitura vazia. A identificação dos filtros depende
 do DOM institucional; se o AssystNet alterar esses controles, valide antes de retomar a limpeza.
 Não se consulta a API privada do sistema nem se força uma atualização de dados do servidor.
-A fila deve estar atualizada no próprio AssystNet, sem filtros. Fora dessa tela não há limpeza.
+A fila deve estar atualizada no próprio AssystNet, sem filtros. Fora dessas duas telas não há limpeza.
 
 O popup mostra a quantidade de registros com tag separada do total da última fila conferida.
 A limpeza automática pode ser pausada. Antes de remover registros, é salva uma única cópia de
