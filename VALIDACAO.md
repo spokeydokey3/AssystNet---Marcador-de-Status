@@ -1,18 +1,22 @@
-# Validação do Firefox e Chrome 3.8.0
+# Validação do Firefox e Chrome 3.8.1
 
-- `node --test tests/*.test.cjs`: 69 testes aprovados, com persistência/validação das preferências,
+- `node --test tests/*.test.cjs`: 72 testes aprovados, com persistência/validação das preferências,
   migração dos dados, callbacks Chrome, transferência JSON/CSV, perfis novos sem presets, fila
   salva após reinício, exportação sem aba, invalidação por importação/undo e falhas atômicas.
-- `tests/dom.cjs`: dez cenários aprovados, incluindo os controles do popup e um único observer.
-- `tests/refresh-dom.cjs`: quatorze cenários aprovados com jsdom 26.1.0 e temporizadores simulados
+- `tests/dom.cjs`: onze cenários aprovados, incluindo os controles do popup e um único observer.
+- `tests/refresh-dom.cjs`: dezenove cenários aprovados com jsdom 26.1.0 e temporizadores simulados
   por @sinonjs/fake-timers 13.0.5. Usam o HTML dos botões fornecido pelo usuário e grids sintéticos.
 - `tests/chrome-browser.cjs`: quatro verificações Chromium/Playwright 1.64.1 aprovadas com APIs
   WebExtension simuladas, incluindo a UI existente e URLs Blob com Unicode.
+- `tests/refresh-browser.cjs`: quatro cenários Chromium aprovados com DOM real e relógio
+  controlado: dois hosts, duas telas, clique encaminhado pelo input oculto (modelo _ButtonMixin),
+  animação de um segundo sem mudanças de dados, menu estacionado e dois ciclos com um observer.
+  A resposta do servidor, APIs da extensão e o widget são simulados; não executa o Dojo real.
 - Pacote Firefox: web-ext 10.8.0, zero erros, avisos e notificações.
 - Pacotes reproduzidos byte a byte a partir do ZIP de fontes. JavaScripts compartilhados iguais
   nas duas edições. Nenhuma nova permissão.
 - Os quatro testes de portabilidade foram executados também com os arquivos dos ZIPs 3.6.0 e
-  3.8.0, em ambas as combinações Firefox/Chrome. O JSON permanece v3 e o CSV mantém os bytes/BOM.
+  3.8.1, em ambas as combinações Firefox/Chrome. O JSON permanece v3 e o CSV mantém os bytes/BOM.
 
 ## Fila salva e Página Inicial
 
@@ -24,6 +28,17 @@ sem lista salva. A fila salva inclui sem tag, exclui resolvidos/ausentes e usa m
 Fila vazia pode gerar relatório vazio sem apagar as marcações. Mudanças de status entre duas
 leituras rejeitam a nova conferência. São preservadas a última lista válida e a cópia de recuperação
 quando a gravação falha. Há apenas um observer. Os hosts são simulados, não acessados na rede.
+
+## Correção de atualização nativa
+
+Quatro cenários novos reproduziram falhas da 3.8.0 antes da alteração: Standby somente por style,
+menu offscreen, ausência de proteção de clique manual com a opção desligada e animações
+adiando o watchdog. Todos passaram após a correção. O observer real do content.js foi testado
+no Chromium com display/opacity, sem recriar linhas. O teste DOM de interrupção de captura
+confirma que não se restaura scroll nem se apagam marcas durante a atualização manual.
+As mensagens de estado explicam pausas e ausência do receptor na aba; não alteram dados.
+O formato de Standby foi consultado no fonte público DojoX 1.17.3, sem assumir que essa é a
+versão instalada no tribunal. A causa exata na sessão do usuário requer seu novo teste.
 
 ## Atualização nativa mantida
 

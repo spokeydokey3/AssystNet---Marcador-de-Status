@@ -3,9 +3,12 @@
   const KEY = 'assyst_refresh_settings';
   const OWNED = '[data-assyst-ui]';
   const TITLE = 'chamados atribuidos a mim';
+  // dojox/widget/Standby moves its underlay to body and animates display/opacity.
+  const STANDBY = '[dojoAttachPoint~="_underlayNode"], [data-dojo-attach-point~="_underlayNode"], .dojoxStandbyUnderlay';
+  const LOADING = '[aria-busy="true"], .dgrid-loading, .dgrid-preload-loading, .dijitContentPaneLoading';
   const fold = value => String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
   let settings = AssystData.refreshSettings();
-  let timer = 0, stopped = false, revision = 0, lastInteraction = -Infinity;
+  let timer = 0, nextAt = 0, stopped = false, revision = 0, lastInteraction = -Infinity;
   let route = hash(), flight = null;
 
   function hash() { try { return window.top.location.hash || location.hash; } catch { return location.hash; } }
@@ -51,31 +54,51 @@
       if (p.matches(':disabled, [aria-disabled="true"], [aria-busy="true"], .dijitDisabled, .dijitButtonDisabled')) return true;
       if (p === current.root) break;
     }
-    return [...current.root.querySelectorAll('[aria-busy="true"], .dgrid-loading, .dgrid-preload-loading, .dijitContentPaneLoading')]
+    return loading(current.root);
+  }
+  function loading(root = document.body) {
+    return [...(root.matches(LOADING) ? [root] : []), ...root.querySelectorAll(LOADING), ...document.querySelectorAll(STANDBY)]
       .some(node => !node.closest(OWNED) && visible(node));
   }
   function userBusy() {
-    if (Date.now() - lastInteraction < 2000 || globalThis.AssystQueueSync?.isBusy() || globalThis.AssystTaggerUI?.isBusy()) return true;
+    if (Date.now() - lastInteraction < 2000) return 'activity';
+    if (globalThis.AssystQueueSync?.isBusy()) return 'scan';
+    if (globalThis.AssystTaggerUI?.isBusy()) return 'marks';
     const active = document.activeElement;
-    if (active && active !== document.body && active.matches('input, textarea, select, [contenteditable="true"]')) return true;
+    if (active && active !== document.body && active.matches('input, textarea, select, [contenteditable="true"]')) return 'editing';
     const selection = document.getSelection();
-    if (selection && !selection.isCollapsed) return true;
-    return [...document.querySelectorAll('[role="dialog"], [aria-modal="true"], .dijitPopup, [role="menu"], [role="listbox"], .dgrid-selected, [role="row"][aria-selected="true"], .dgrid input[type="checkbox"]:checked, [role="grid"] input[type="checkbox"]:checked, .dgrid input[type="radio"]:checked')]
-      .some(node => !node.closest(OWNED) && visible(node));
+    if (selection && !selection.isCollapsed) return 'selection';
+    for (const node of document.querySelectorAll('[role="dialog"], [aria-modal="true"], .dijitPopup, [role="menu"], [role="listbox"], .dgrid-selected, [role="row"][aria-selected="true"], .dgrid input[type="checkbox"]:checked, [role="grid"] input[type="checkbox"]:checked, .dgrid input[type="radio"]:checked')) {
+      if (node.closest(OWNED) || !visible(node)) continue;
+      if (node.matches('.dijitPopup, [role="menu"], [role="listbox"]')) {
+        const rect = node.getBoundingClientRect();
+        // Dojo parks closed menu wrappers at negative coordinates instead of display:none.
+        if (rect.width <= 0 || rect.height <= 0 || rect.right <= 0 || rect.bottom <= 0 || rect.left >= innerWidth || rect.top >= innerHeight) continue;
+      }
+      return 'selection';
+    }
+    return null;
   }
-  function clearTimer() { if (timer) clearTimeout(timer); timer = 0; }
+  function clearTimer() { if (timer) clearTimeout(timer); timer = 0; nextAt = 0; }
   function schedule(delay = settings.intervalSeconds * 1000) {
+    if (stopped) { clearTimer(); return; }
+    if (flight) {
+      // Native animation mutations must not keep postponing this independent watchdog.
+      if (!flight.uncertain && !timer) timer = setTimeout(tick, 250);
+      return;
+    }
     clearTimer();
-    if (stopped) return;
-    if (flight) { if (!flight.uncertain) timer = setTimeout(tick, 250); return; }
-    if (settings.enabled && (settings.background || !document.hidden)) timer = setTimeout(tick, delay);
+    if (settings.enabled && (settings.background || !document.hidden)) {
+      nextAt = Date.now() + delay; timer = setTimeout(tick, delay);
+    }
   }
   function begin() {
+    clearTimer();
     flight = { route: hash(), started: Date.now(), lastChange: Date.now(), sawBusy: false, sawData: false, uncertain: false };
     schedule();
   }
   function tick() {
-    timer = 0;
+    timer = 0; nextAt = 0;
     if (stopped) return;
     if (hash() !== route) { navigate(); return; }
     const current = target();
@@ -89,6 +112,7 @@
       if (busy) { flight.sawBusy = true; flight.lastChange = Date.now(); }
       if (!busy && (flight.sawData || flight.sawBusy) && Date.now() - flight.lastChange >= 750) {
         flight = null;
+        globalThis.AssystTaggerUI?.refreshAfterLoading?.();
         globalThis.AssystQueueSync?.refreshFinished();
         schedule(); return;
       }
@@ -122,7 +146,7 @@
       if (!element || element.closest(OWNED)) continue;
       const nodes = record.type === 'childList' ? [...record.addedNodes, ...record.removedNodes] : [];
       if (nodes.length && nodes.every(node => node.nodeType === 1 && node.matches(OWNED))) continue;
-      if (!current.root.contains(element) && !element.contains(current.root)) continue;
+      if (!current.root.contains(element) && !element.contains(current.root) && !element.matches(STANDBY)) continue;
       nativeRecord = true;
       const inGrid = element.closest('.dgrid, [role="grid"]');
       const addedGrid = nodes.some(node => node.nodeType === 1 &&
@@ -131,11 +155,11 @@
         flight.sawData = true; flight.lastChange = Date.now(); relevant = true;
       }
     }
-    if (nativeRecord && nativeBusy(current)) { flight.sawBusy = true; flight.lastChange = Date.now(); relevant = true; }
-    if (!relevant) return;
-    if (flight.uncertain && (flight.sawData || flight.sawBusy) && Date.now() - flight.lastChange < 750) {
+    const busy = nativeRecord && nativeBusy(current);
+    if (busy) { flight.sawBusy = true; flight.lastChange = Date.now(); relevant = true; }
+    if (flight.uncertain && nativeRecord && !busy && (flight.sawData || flight.sawBusy)) {
       flight.uncertain = false; flight.started = Date.now();
-    }
+    } else if (!relevant || flight.uncertain) return;
     schedule();
   }
   async function load() {
@@ -155,7 +179,7 @@
   document.addEventListener('keydown', activity, true);
   document.addEventListener('input', activity, true);
   document.addEventListener('click', event => {
-    if (!settings.enabled || stopped) return;
+    if (stopped) return;
     const current = target();
     if (current && !nativeBusy(current) && current.button.contains(event.target) && (!flight || flight.uncertain)) begin();
   }, true);
@@ -171,7 +195,31 @@
       stopped = false; route = hash(); browser.storage.onChanged.addListener(storageChanged); load();
     }
   });
-  globalThis.AssystAutoRefresh = { changed, isRefreshing: () => !!flight,
-    getStatus: () => ({ enabled: settings.enabled, pending: !!flight, paused: !!flight?.uncertain }) };
+  function getStatus() {
+    const current = target();
+    const reason = !settings.enabled ? 'disabled' : flight?.uncertain ? 'unknown' : flight ? 'updating' :
+      !settings.background && document.hidden ? 'hidden' : !current ? 'unsupported' : nativeBusy(current) ? 'loading' : userBusy() || 'waiting';
+    const messages = {
+      disabled: 'Atualização automática desligada.',
+      unknown: 'Pausada: não foi possível confirmar o fim da atualização. Uma atualização manual concluída ou a troca de tela permite tentar novamente.',
+      updating: 'Aguardando a conclusão da atualização do AssystNet.',
+      hidden: 'Pausada: esta aba está em segundo plano.',
+      unsupported: 'Aguardando a Página Inicial ou a fila “Chamados atribuídos a mim” com o botão Atualizar visível.',
+      loading: 'Aguardando a animação de carregamento do AssystNet terminar.',
+      activity: 'Aguardando você terminar a interação com a página.',
+      scan: 'Aguardando a conferência da fila terminar.',
+      marks: 'Aguardando o salvamento das marcações ou o fechamento da janela de edição.',
+      editing: 'Pausada: há um campo em edição. Clique fora dele para continuar.',
+      selection: 'Pausada: há seleção de texto/linha ou um menu aberto.',
+      waiting: `Ativa: aguardando o intervalo de ${settings.intervalSeconds} segundos.`
+    };
+    return { enabled: settings.enabled, intervalSeconds: settings.intervalSeconds, pending: !!flight,
+      paused: !!flight?.uncertain, reason, message: messages[reason], nextAt: nextAt || null };
+  }
+  browser.runtime?.onMessage?.addListener((message, sender) => {
+    if (sender.id !== browser.runtime.id || message?.type !== 'assyst-refresh' || message.action !== 'status' || !target()) return undefined;
+    return Promise.resolve(getStatus());
+  });
+  globalThis.AssystAutoRefresh = { changed, isRefreshing: () => !!flight, isLoading: loading, getStatus };
   load();
 })();

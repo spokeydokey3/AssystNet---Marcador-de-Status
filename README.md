@@ -1,8 +1,8 @@
-# AssystNet · Marcador de Status — Firefox e Chrome 3.8.0
+# AssystNet · Marcador de Status — Firefox e Chrome 3.8.1
 
 Extensão Manifest V3, JavaScript/HTML/CSS puros, sem frameworks, bundlers ou dependências
 de execução. Os dados ficam exclusivamente em `browser.storage.local`, no perfil do navegador.
-As edições Firefox e Chrome 3.8.0 usam o mesmo código de dados, interface e fila. Os manifestos
+As edições Firefox e Chrome 3.8.1 usam o mesmo código de dados, interface e fila. Os manifestos
 e downloads têm adaptação por navegador. Veja CHROME.md para atualizar a instalação Chrome.
 
 ## Tags criadas por cada operador
@@ -28,6 +28,18 @@ Os mesmos recursos estão habilitados nos ambientes interno e externo:
 
 No mesmo perfil/navegador, ambos usam as mesmas marcações. Entre computadores ou navegadores,
 transfira o backup JSON; a fila conferida deve ser lida novamente no destino.
+
+## Correções da atualização automática em 3.8.1
+
+Menus Dojo fechados e guardados fora da tela não são mais tratados como abertos. A conclusão
+reconhece a animação de Standby por display/opacity, inclusive sem alteração dos chamados.
+A animação não reinicia o temporizador de segurança; a atualização manual também protege
+leituras da fila quando o agendamento automático está desligado.
+
+O popup mostra o estado da atualização. **Verificar funcionamento** consulta a aba de origem,
+sem atualizar o AssystNet. Indica espera, carregamento, campo em edição, seleção, leitura da
+fila ou código ainda não carregado. Após instalar esta atualização, recarregue a aba pelo
+navegador (F5/Ctrl+R), uma vez; o botão nativo do AssystNet não recarrega os scripts da extensão.
 
 ## Atualizar os dados no AssystNet
 

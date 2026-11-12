@@ -57,6 +57,7 @@ function background(initial = {}, options = {}) {
         return tab;
       },
       async sendMessage(id, message) {
+        if (message.type === 'assyst-refresh') return typeof options.refreshStatus === 'function' ? options.refreshStatus(id, message) : options.refreshStatus;
         if (message.action === 'probe') {
           for (const frameId of options.frames || [0]) {
             await listener({ type: 'assyst-tagger', action: 'queueReady', token: message.token },

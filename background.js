@@ -79,6 +79,21 @@ function isAssyst(url) {
   } catch { return false; }
 }
 
+async function refreshStatus(sourceTabId) {
+  let tab;
+  try {
+    if (sourceTabId !== undefined) {
+      if (!Number.isInteger(sourceTabId) || sourceTabId < 0) throw new Error('Origem inválida.');
+      tab = await browser.tabs.get(sourceTabId);
+    } else [tab] = await browser.tabs.query({ active: true, lastFocusedWindow: true });
+    if (tab && isAssyst(tab.url)) {
+      const status = await browser.tabs.sendMessage(tab.id, { type: 'assyst-refresh', action: 'status' });
+      if (typeof status?.message === 'string' && typeof status?.reason === 'string') return { status };
+    }
+  } catch { /* No diagnostics, credentials or operational data are transmitted. */ }
+  return { status: { reason: 'unavailable', message: 'Abra a Página Inicial ou “Chamados atribuídos a mim”. Após atualizar a extensão, recarregue essa aba para ativar o novo código.' } };
+}
+
 async function readQueue(sourceTabId, cleanup = false) {
   let tab;
   if (sourceTabId !== undefined) {
@@ -282,6 +297,7 @@ async function handle(message) {
 
 browser.runtime.onMessage.addListener((message, sender) => {
   if (!message || message.type !== 'assyst-tagger' || sender.id !== browser.runtime.id) return undefined;
+  if (message.action === 'refreshStatus') return refreshStatus(message.sourceTabId).then(result => ({ ok: true, ...result }));
   if (message.action === 'queueReady') {
     const job = reportJobs.get(message.token);
     if (job && sender.tab?.id === job.tabId && Number.isInteger(sender.frameId) && isAssyst(sender.url)) {

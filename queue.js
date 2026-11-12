@@ -95,6 +95,7 @@
   }
 
   function cleanupContext(grid) {
+    if (globalThis.AssystAutoRefresh?.isLoading?.()) throw new Error('Aguarde o carregamento do AssystNet terminar antes de conferir a fila.');
     const { hash, root, home } = view();
     if (!home && !/^#eventMonitor\/4\/?$/i.test(hash)) throw new Error('Abra a Página Inicial ou “Chamados atribuídos a mim” para conferir a fila.');
     const current = context(grid);
@@ -139,6 +140,7 @@
       const records = new Map(), positions = new Map();
       const deadline = Date.now() + 45000;
       const assertContext = () => {
+        if (globalThis.AssystAutoRefresh?.isRefreshing()) throw new Error('A atualização do AssystNet interrompeu a leitura. Aguarde e tente novamente.');
         if (!grid.isConnected || location.href !== href) throw new Error('A página mudou durante a leitura. Exporte novamente.');
         const current = cleanupContext(grid);
         if (current.total !== initial.total || current.signature !== initial.signature || current.field !== initial.field || current.index !== initial.index) {
@@ -190,7 +192,8 @@
         tickets: [...records].filter(([, status]) => ['aberto', 'open'].includes(status)).map(([ticket]) => ticket),
         ...(cleanup ? { queueTickets: [...records.keys()], unfiltered: true, scope: initial.scope } : {}) };
     } finally {
-      if (scroller?.isConnected && grid?.isConnected && originalTop !== undefined) scroller.scrollTop = originalTop;
+      if (scroller?.isConnected && grid?.isConnected && originalTop !== undefined &&
+          !globalThis.AssystAutoRefresh?.isRefreshing() && !globalThis.AssystAutoRefresh?.isLoading?.()) scroller.scrollTop = originalTop;
       busy = false;
       lastCaptureEndedAt = Date.now();
     }

@@ -1,10 +1,11 @@
-# Testar e publicar o Firefox 3.8.0
+# Testar e publicar o Firefox 3.8.1
 
 1. Na extensão instalada, salve e confira um backup JSON antes da atualização.
-2. Para teste temporário, extraia `AssystNet-3.8.0-submissao.zip`, abra
+2. Para teste temporário, extraia `AssystNet-3.8.1-submissao.zip`, abra
    `about:debugging#/runtime/this-firefox`, escolha **Carregar extensão temporária** e selecione
    manifest.json. Instalações temporárias não são uma distribuição permanente.
-3. Recarregue as abas do AssystNet depois de atualizar. Teste um chamado aberto pela Página
+3. Recarregue as abas pelo navegador (F5/Ctrl+R) depois de atualizar; o botão nativo do AssystNet
+   não carrega os scripts novos. Teste um chamado aberto pela Página
    Inicial, pela fila e por link direto, incluindo referências com R/S.
 4. Marque/desmarque caixas intermediárias sem confirmação e confira as duas visualizações.
 5. Abra a Página Inicial ou a fila completa, atualizada e sem filtros. A limpeza automática estará ativada por padrão.
@@ -16,8 +17,8 @@
    lista salva, os chamados sem tag e a exclusão dos resolvidos. Teste ambos os hosts.
    Em perfil novo, confira que não existem tags predefinidas. Teste um JSON de ida e volta. O formato v3 requer 3.6.0+ no destino;
    backups antigos continuam aceitos. A limpeza não apaga as definições das tags.
-8. No cadastro existente da Mozilla, envie `AssystNet-3.8.0-submissao.zip` como nova versão e
-   `AssystNet-3.8.0-fontes.zip` no campo dos fontes. Ambos devem pertencer à versão 3.8.0.
+8. No cadastro existente da Mozilla, envie `AssystNet-3.8.1-submissao.zip` como nova versão e
+   `AssystNet-3.8.1-fontes.zip` no campo dos fontes. Ambos devem pertencer à versão 3.8.1.
 9. Use NOTAS-AMO.txt para as notas ao revisor e CONSTRUIR.md para a reprodução. Selecione desktop;
    o fluxo Android não foi validado. A assinatura e a aprovação são realizadas pela Mozilla.
 
@@ -37,11 +38,12 @@ real de Ajax/Dojo e seus sinais de carregamento precisam ser conferidos pelo ope
 Notas de atualização sugeridas:
 
 ```text
-Versão 3.8.0
-- Planilha da última fila conferida disponível de qualquer tela, com data da conferência.
-- Inclui os chamados abertos, mesmo sem tag, com as marcações atuais.
-- Conferência e limpeza automática também no painel próprio da Página Inicial.
-- Novas instalações sem tags predefinidas; tags e marcações existentes preservadas.
-- Mesmas funcionalidades nos ambientes interno e externo do AssystNet.
-- Backup JSON v3 compatível com Firefox e Chrome 3.6.0 ou posterior.
+Versão 3.8.1
+- Correção da pausa causada por menus Dojo fechados e guardados fora da tela.
+- Detecção do fim da animação de atualização mesmo quando a fila não mudou.
+- Temporizador de segurança independente das mudanças da animação.
+- Estado da atualização no popup e botão Verificar funcionamento, sem acionar o AssystNet.
+- Leitura da fila protegida também durante atualizações manuais.
+- Marcações, configurações e backup JSON v3 preservados.
+Depois de instalar, recarregue a aba pelo navegador uma vez (F5/Ctrl+R).
 ```

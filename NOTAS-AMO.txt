@@ -1,4 +1,4 @@
-AssystNet Status Tagger — Firefox 3.8.0 review notes
+AssystNet Status Tagger — Firefox 3.8.1 review notes
 
 Purpose: local ticket tags and operator-maintained contact checkboxes on the two
 AssystNet hosts declared in the manifest. No official ticket status is changed.
@@ -10,7 +10,7 @@ The ten runtime files are readable JavaScript, HTML and CSS. No framework,
 bundler, transpiler, minifier or external runtime library is used. Source ZIP includes
 build.py, requirements and full step-by-step instructions in CONSTRUIR.md.
 With Python 3.12+ run: python3 build.py --browser firefox
-The output is releases/AssystNet-3.8.0-submissao.zip. Tested on Linux/Python 3.12.14.
+The output is releases/AssystNet-3.8.1-submissao.zip. Tested on Linux/Python 3.12.14.
 No npm dependencies or network access are required to build. The script copies the
 Firefox runtime bytes unchanged, with fixed ZIP metadata; REPRODUCAO.txt records
 the SHA-256. Source-to-submission reproduction was checked byte for byte.
@@ -41,7 +41,7 @@ Changes:
 - New profiles have no preset tags. Explicit existing definitions and legacy referenced
   assignments are preserved. No migration removes user tags.
 
-Testing: 69 automated Node tests (including four Chrome/Firefox portability tests), twenty-four simulated-DOM scenarios and four Chromium
+Testing: 72 automated Node tests (including four Chrome/Firefox portability tests), thirty simulated-DOM scenarios and eight Chromium
 interface/Blob checks with simulated extension APIs passed. Firefox ZIP web-ext
 10.8.0 lint: zero errors, warnings and notices. Firefox/live institutional integration
 must still be tested by an authorized operator. Filter detection depends on the host DOM.
@@ -52,7 +52,7 @@ data. Live institutional access may require an authorized account. No credential
 operational backups or real ticket details are included in the submission.
 
 
-The optional autoRefresh.js introduced in 3.7.0 is retained in 3.8.0. It is disabled by default; interval defaults to
+The optional autoRefresh.js introduced in 3.7.0 is retained in 3.8.1. It is disabled by default; interval defaults to
 60 seconds, with choices 30/60/120/300 seconds. Background tabs are opt-in. A single
 controller timeout is canceled/rescheduled on settings, visibility and navigation.
 It clicks the supplied native eventMonitorRefreshButton on #eventMonitor/4, or the
@@ -64,3 +64,15 @@ success; unknown completion pauses repeated clicks and protects cleanup. See
 AUTO_REFRESH.md for operator tests of real native behavior and filter preservation.
 No permissions added. Preferences use local storage and are not part of ticket backups.
 Ticket JSON remains format 3, compatible with Firefox/Chrome 3.6.0.
+
+Version 3.8.1 fixes false menu-open detection for offscreen parked Dojo wrappers and
+recognizes the public DojoX Standby underlay's display/opacity loading animation even
+when grid data remains unchanged. The watchdog no longer restarts on every mutation.
+Manual native refresh also guards scans when auto-clicking is disabled; an interrupted
+scan aborts without restoring scroll during native loading or deleting data. The existing
+observer additionally watches style/hidden, without rescanning the grid for animation styles.
+A read-only status request from the popup reports waiting/pause/loading reasons in its
+source tab and recommends reloading the tab after an extension update when code is missing.
+No new permissions, external libraries, private page API calls or data format changes.
+Dojo markup is modeled from public upstream source; institutional integration is still
+unverified. The actual host loading-indicator DOM and deployed Dojo version are unknown.

@@ -7,7 +7,7 @@ const { root } = require('./harness.cjs');
 const KEY = 'assyst_refresh_settings';
 const prefs = (overrides = {}) => ({ enabled: true, intervalSeconds: 30, background: false, ...overrides });
 
-async function setup({ hash = '#eventMonitor/4', settings = prefs(), complete = true, origin = 'https://cati.tjce.jus.br' } = {}) {
+async function setup({ hash = '#eventMonitor/4', settings = prefs(), complete = true, origin = 'https://cati.tjce.jus.br', standby = false } = {}) {
   const dom = new JSDOM(`<!doctype html><meta charset="utf-8"><body tabindex="-1">
     <input id="editor"><div id="dialog" role="dialog" hidden></div>
     <section id="assigned"><select><option>Chamados Atribuídos a mim</option><option>Outra fila</option></select>
@@ -23,6 +23,14 @@ async function setup({ hash = '#eventMonitor/4', settings = prefs(), complete = 
     </main>`, { url: origin + '/assystnet/' + hash, runScripts: 'outside-only', pretendToBeVisual: true });
   const w = dom.window, doc = w.document;
   w.HTMLElement.prototype.getClientRects = function() { return this.closest('[hidden]') ? [] : [{ width: 100, height: 20 }]; };
+  w.HTMLElement.prototype.getBoundingClientRect = function() {
+    const left = parseFloat(this.style.left) || 0;
+    return { left, right: left + 100, top: 0, bottom: 20, width: 100, height: 20 };
+  };
+  const overlay = doc.createElement('div');
+  overlay.setAttribute('data-dojo-attach-point', '_underlayNode');
+  overlay.style.cssText = 'display:none;position:absolute;cursor:wait;opacity:.75';
+  doc.body.append(overlay);
   const clock = FakeTimers.withGlobal(w).install({ now: Date.UTC(2026, 10, 12, 12), toFake: ['Date', 'setTimeout', 'clearTimeout'] });
   let hidden = false, queueBusy = false, tagBusy = false, finished = 0, saved = settings, reads = 0;
   Object.defineProperty(doc, 'hidden', { get: () => hidden, configurable: true });
@@ -43,6 +51,11 @@ async function setup({ hash = '#eventMonitor/4', settings = prefs(), complete = 
     if (!button) return;
     clicks.push(button.dataset.test);
     if (!complete) return;
+    if (standby) {
+      overlay.style.display = 'block';
+      w.setTimeout(() => { overlay.style.display = 'none'; }, 1000);
+      return;
+    }
     button.setAttribute('aria-disabled', 'true');
     w.setTimeout(() => {
       const cell = button.closest('section').querySelector('td.field-eventRef');
@@ -54,7 +67,7 @@ async function setup({ hash = '#eventMonitor/4', settings = prefs(), complete = 
   w.eval(fs.readFileSync(`${root}/autoRefresh.js`, 'utf8'));
   // Forward native records as the production content.js observer does; the module has no observer of its own.
   const observer = new w.MutationObserver(records => w.AssystAutoRefresh.changed(records));
-  observer.observe(doc.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['class', 'disabled', 'aria-disabled', 'aria-busy'] });
+  observer.observe(doc.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['class', 'disabled', 'aria-disabled', 'aria-busy', 'style', 'hidden'] });
   await clock.tickAsync(0);
   return { w, doc, clock, clicks, get finished() { return finished; }, get reads() { return reads; },
     queueBusy(value) { queueBusy = value; }, tagBusy(value) { tagBusy = value; },
@@ -212,4 +225,78 @@ test('native refresh supports both permitted hosts and both queue views', async 
       } finally { e.close(); }
     }
   }
+});
+
+
+test('one-second Dojo Standby style-only animation completes even when queue data is unchanged', async () => {
+  const e = await setup({ standby: true });
+  try {
+    await e.clock.tickAsync(33000);
+    assert.equal(e.finished, 1);
+    assert.equal(e.w.AssystAutoRefresh.isRefreshing(), false);
+    await e.clock.tickAsync(33000);
+    assert.deepEqual(e.clicks, ['assigned', 'assigned']);
+    assert.equal(e.finished, 2);
+  } finally { e.close(); }
+});
+
+test('parked offscreen Dojo popup wrappers do not block automatic refresh', async () => {
+  const e = await setup();
+  try {
+    const menu = e.doc.createElement('div');
+    menu.className = 'dijitPopup';
+    menu.style.cssText = 'position:absolute;left:-10000px;top:0;width:100px;height:20px';
+    e.doc.body.append(menu);
+    await e.clock.tickAsync(33000);
+    assert.deepEqual(e.clicks, ['assigned']);
+  } finally { e.close(); }
+});
+
+test('manual refresh protects scanning during Standby even when automatic clicking is disabled', async () => {
+  const e = await setup({ settings: prefs({ enabled: false }), standby: true });
+  try {
+    e.doc.querySelector('[data-test="assigned"]').click();
+    assert.equal(e.w.AssystAutoRefresh.isRefreshing(), true);
+    await e.clock.tickAsync(3000);
+    assert.equal(e.w.AssystAutoRefresh.isRefreshing(), false);
+    assert.equal(e.finished, 1);
+    await e.clock.tickAsync(120000);
+    assert.deepEqual(e.clicks, ['assigned']);
+  } finally { e.close(); }
+});
+
+test('continuous loading mutations cannot postpone the request timeout indefinitely', async () => {
+  const e = await setup({ complete: false });
+  try {
+    await e.clock.tickAsync(30000);
+    for (let i = 0; i < 500; i++) {
+      e.doc.querySelector('#assigned .dgrid').setAttribute('aria-busy', 'true');
+      await e.clock.tickAsync(100);
+    }
+    assert.equal(e.w.AssystAutoRefresh.getStatus().paused, true);
+    assert.deepEqual(e.clicks, ['assigned']);
+  } finally { e.close(); }
+});
+
+test('status explains editing, active and parked menus, loading and uncertain completion', async () => {
+  const e = await setup({ complete: false });
+  try {
+    assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'waiting');
+    e.doc.getElementById('editor').focus();
+    assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'editing');
+    e.doc.getElementById('editor').blur();
+    const popup = e.doc.createElement('div'); popup.className = 'dijitPopup';
+    e.doc.body.append(popup);
+    assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'selection');
+    popup.style.left = '-10000px';
+    assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'waiting');
+    const standby = e.doc.querySelector('[data-dojo-attach-point="_underlayNode"]');
+    standby.style.display = 'block';
+    assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'loading');
+    standby.style.display = 'none';
+    await e.clock.tickAsync(80000);
+    assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'unknown');
+    e.settings(prefs({ enabled: false }));
+    assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'disabled');
+  } finally { e.close(); }
 });

@@ -50,9 +50,14 @@ async function setup({ route = '#events/2179427?eventType=1&currentIndex=5', ind
     scrollTop: { get: () => top, set: value => { top = value; if (virtual) render(Math.min(2, Math.floor(value / 100))); } }
   });
   const listeners = [];
+  const dispatch = message => {
+    for (const listener of listeners) {
+      const result = listener(message, { id: 'test@assyst' });
+      if (result !== undefined) return result;
+    }
+  };
   const options = { tab: { id: 7, url: w.location.href },
-    capture: message => listeners[0](message, { id: 'test@assyst' }),
-    verify: message => listeners[0](message, { id: 'test@assyst' }) };
+    capture: dispatch, verify: dispatch };
   const bg = background({ assyst_auto_sync: auto, assyst_ticket_tags: { '2179427': 'REDMINE', S9: 'ATENDIMENTO' },
     assyst_contacts: { S9: { attempts: ['2026-10-01'] } } }, options);
   let confirmations = 0;
@@ -61,7 +66,7 @@ async function setup({ route = '#events/2179427?eventType=1&currentIndex=5', ind
     sendMessage: message => bg.send(message.action, message) }, storage: bg.browser.storage };
   for (const name of ['data.js', 'autoRefresh.js', 'queue.js', 'content.js', 'detail.js']) w.eval(fs.readFileSync(`${root}/${name}`, 'utf8'));
   await until(() => doc.querySelector('td.field-eventRef select'));
-  return { dom, w, doc, bg, options, listeners, confirmations: () => confirmations, observers: () => observers };
+  return { dom, w, doc, bg, options, listeners, dispatch, confirmations: () => confirmations, observers: () => observers };
 }
 async function close(env) {
   env.w.dispatchEvent(new env.w.Event('pagehide'));
@@ -116,7 +121,7 @@ test('navigation blocks stale handlers and binds the current full R reference', 
 test('full virtual-grid cleanup reads every row twice and removes only absent records', async () => {
   const env = await setup({ route: '#eventMonitor/4', virtual: true });
   try {
-    env.listeners[0]({ type: 'assyst-queue', action: 'probe', token: 'test' }, { id: 'test@assyst' });
+    env.dispatch({ type: 'assyst-queue', action: 'probe', token: 'test' });
     assert.equal(env.w.AssystQueueSync.isBusy(), true, 'refresh is deferred while a scan frame is being discovered');
     const result = await env.bg.send('syncQueue');
     assert.ok(result.ok, result.error); assert.equal(result.total, 3);
@@ -157,13 +162,18 @@ test('popup separates queue/mark counts and its recovery button restores records
   const dom = new JSDOM(fs.readFileSync(`${root}/popup.html`, 'utf8'), { url: 'https://extension.test/popup.html', runScripts: 'outside-only' });
   const w = dom.window;
   const capture = { ok: true, complete: true, total: 1, queueTickets: ['S1'], tickets: ['S1'], unfiltered: true, scope: 'own' };
-  const bg = background({ assyst_ticket_tags: { S1: 'REDMINE', S9: 'REDMINE' } }, { capture });
+  const popupOptions = { capture, refreshStatus: { reason: 'waiting', message: 'Ativa: aguardando o intervalo de 60 segundos.' } };
+  const bg = background({ assyst_ticket_tags: { S1: 'REDMINE', S9: 'REDMINE' } }, popupOptions);
   w.confirm = () => true;
   w.browser = { runtime: { sendMessage: message => bg.send(message.action, message) }, storage: bg.browser.storage };
   w.eval(fs.readFileSync(`${root}/data.js`, 'utf8'));
   w.eval(fs.readFileSync(`${root}/popup.js`, 'utf8'));
   try {
     await until(() => w.document.getElementById('ticketCount').textContent === '2 com tag' && !w.document.getElementById('btnSync').disabled);
+    await until(() => w.document.getElementById('refreshStatus').textContent.includes('Ativa:'));
+    popupOptions.refreshStatus = { reason: 'editing', message: 'Pausada: há um campo em edição.' };
+    w.document.getElementById('btnRefreshStatus').click();
+    await until(() => w.document.getElementById('refreshStatus').textContent.includes('campo em edição') && !w.document.getElementById('btnSync').disabled);
     assert.equal(w.document.getElementById('refreshEnabled').checked, false);
     assert.equal(w.document.getElementById('refreshInterval').value, '60');
     w.document.getElementById('refreshEnabled').checked = true;
@@ -245,4 +255,28 @@ test('homepage automatically saves its own queue without opening the full monito
       assert.equal(env.observers(), 1);
     } finally { await close(env); }
   }
+});
+
+test('manual native refresh interrupts an active scan without restoring scroll or deleting marks during Standby', async () => {
+  const env = await setup({ route: '#eventMonitor/4', virtual: true });
+  try {
+    const button = env.doc.createElement('span');
+    button.setAttribute('role', 'button'); button.dataset.componentTag = 'eventMonitorRefreshButton';
+    env.doc.body.prepend(button);
+    const underlay = env.doc.createElement('div');
+    underlay.setAttribute('data-dojo-attach-point', '_underlayNode');
+    underlay.style.display = 'none'; env.doc.body.append(underlay);
+    button.addEventListener('click', () => { underlay.style.display = 'block'; });
+    const scroller = env.doc.querySelector('.dgrid-scroller');
+    scroller.scrollTop = 100;
+    const pending = env.bg.send('syncQueue');
+    await until(() => scroller.scrollTop === 0);
+    button.click();
+    assert.equal(env.w.AssystAutoRefresh.isRefreshing(), true);
+    const result = await pending;
+    assert.equal(result.ok, false);
+    assert.equal(env.bg.read().assyst_ticket_tags.S9, 'ATENDIMENTO');
+    assert.equal(env.bg.read().assyst_queue_snapshot, null);
+    assert.equal(scroller.scrollTop, 0, 'scan must not write scroll position while native loading owns the grid');
+  } finally { await close(env); }
 });

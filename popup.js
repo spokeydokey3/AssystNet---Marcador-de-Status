@@ -39,6 +39,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  async function showRefreshStatus() {
+    try {
+      const result = await request('refreshStatus', sourceTabId !== undefined ? { sourceTabId } : {});
+      $('refreshStatus').textContent = result.status.message;
+    } catch { $('refreshStatus').textContent = 'Não foi possível verificar esta aba. Reabra a extensão a partir do AssystNet.'; }
+  }
+
   function renderTags() {
     if (!state) return;
     $('tagCount').textContent = `${state.assyst_tags.length} tags`;
@@ -263,9 +270,11 @@ document.addEventListener('DOMContentLoaded', async () => {
           background: $('refreshBackground').checked
         } });
         feedback('Preferências de atualização salvas neste navegador.');
+        await showRefreshStatus();
       } catch (error) { feedback(error.message, true); request('get').catch(() => {}); }
     });
   }
+  $('btnRefreshStatus').addEventListener('click', () => run(showRefreshStatus));
   $('btnSync').addEventListener('click', () => run(async () => {
     feedback('Conferindo a fila duas vezes. Aguarde sem alterar a página.');
     const payload = sourceTabId !== undefined ? { sourceTabId } : {};
@@ -289,4 +298,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   setColor(selectedColor);
   await run(() => request('get'));
+  await showRefreshStatus();
 });

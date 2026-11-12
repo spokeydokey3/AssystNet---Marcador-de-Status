@@ -410,7 +410,7 @@
         const cell = target.closest(CELL);
         if (cell) pendingCells.add(cell);
         for (const node of record.addedNodes) queueNode(node);
-      } else {
+      } else if (record.attributeName !== 'style' && record.attributeName !== 'hidden') {
         queueNode(record.target);
         if (target.matches('td') && target.querySelector(SELECT)) pendingCells.add(target);
       }
@@ -444,7 +444,7 @@
   document.addEventListener('visibilitychange', () => { if (!document.hidden && !stopped) refreshDay(); });
   function start() {
     stopped = false;
-    observer.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['class', 'disabled', 'aria-disabled', 'aria-busy'] });
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['class', 'disabled', 'aria-disabled', 'aria-busy', 'style', 'hidden'] });
     browser.storage.onChanged.addListener(onStorage);
     request('get').catch(error => showError(error.message));
     refreshDay();
@@ -461,6 +461,7 @@
   globalThis.AssystTaggerUI = {
     isReady() { return !!state && !stopped; },
     isBusy() { return pendingAssignments.size > 0 || pendingContacts.size > 0 || !!activeDialog; },
+    refreshAfterLoading() { queueVisibleCells(); },
     bind(target, ticket) {
       if (!state || stopped) return;
       let select = target.querySelector(SELECT);

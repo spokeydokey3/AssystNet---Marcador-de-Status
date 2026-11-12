@@ -1,4 +1,4 @@
-# Atualização automática nativa — 3.8.0
+# Atualização automática nativa — 3.8.1
 
 O recurso aciona o botão Atualizar do próprio AssystNet. Não usa recarregamento do navegador,
 atalhos de teclado nem reproduz requisições internas. Não altera status, atribuição ou conteúdo
@@ -18,6 +18,24 @@ Ao desativar, não são agendados novos cliques. Uma atualização que já come�
 Abas ocultas, suspensas, computadores em espera ou limitações do navegador podem atrasar os
 temporizadores, mesmo com a opção de segundo plano ligada. O recurso depende de uma aba AssystNet
 aberta e não renova nem contorna a sessão autenticada.
+
+## Verificar funcionamento
+
+Depois de atualizar a extensão, recarregue a aba pelo navegador (F5/Ctrl+R) uma vez para
+carregar os scripts novos. Atualizar pelo botão do AssystNet atualiza apenas a aplicação.
+No popup, **Verificar funcionamento** consulta o estado da aba de origem, sem clicar no botão
+nativo. Pode indicar intervalo, campo em edição, seleção/menu aberto, conferência da fila,
+carregamento, segundo plano ou ausência do código na aba. Não transmite dados nem altera marcas.
+
+Em 3.8.1, wrappers .dijitPopup estacionados fora da tela não são considerados menus abertos.
+O carregamento inclui os underlays de dojox/widget/Standby, movidos para body e animados por
+style (display/opacity). A conclusão pode ser observada mesmo sem mudanças nos chamados.
+Os cliques manuais também são acompanhados com a opção automática desligada, para a leitura
+da fila não concorrer com o carregamento. Nenhum clique automático é gerado nessa situação.
+Mudanças contínuas da animação não adiam a verificação independente do prazo de 45 segundos.
+O formato padrão de Standby foi conferido no código público DojoX 1.17.3:
+https://github.com/dojo/dojox/blob/1.17.3/widget/Standby.js
+O HTML exato do indicador institucional não foi inspecionado.
 
 ## Telas e seletores
 
@@ -42,7 +60,8 @@ estados pelo clique depende do comportamento nativo e precisa ser validada no si
 
 Depois do clique, observa sinais nativos de carregamento e mudanças da grade, aguardando
 estabilização. Há um único temporizador do controlador e nenhum MutationObserver adicional:
-o módulo usa os registros do observer já existente em content.js. A limpeza/CSV aguarda a
+o módulo usa os registros do observer já existente em content.js, incluindo style/hidden.
+A UI não percorre a grade novamente a cada frame dessas animações. A limpeza/CSV aguarda a
 atualização, e novos cliques automáticos aguardam o fim de uma conferência da fila.
 
 Se a conclusão não puder ser observada em 45 segundos, o controlador pausa novos cliques nessa
@@ -67,7 +86,9 @@ não autorizam exclusões. Veja QUEUE_REPORT.md para a lista salva usada no CSV.
 6. Alterne as telas, ative/desative, mude o intervalo e teste a preferência de segundo plano.
 7. Exporte CSV e sincronize a fila enquanto o recurso está ativo; a conferência deve aguardar
    uma atualização e as marcações só podem ser limpas após uma leitura completa válida.
-8. Feche e reabra o navegador e confira a persistência das preferências.
+8. Compare o estado no popup com a tela: sem edição/seleção, deve aguardar o intervalo;
+   observe pelo menos dois ciclos mesmo sem mudanças na fila. Menus abertos ainda pausam.
+9. Feche e reabra o navegador e confira a persistência das preferências.
 
 Os seletores vieram do HTML fornecido pelo usuário. Os testes automatizados usam DOM e
 atualizações simuladas; não confirmam o comportamento Ajax/Dojo do ambiente institucional.
