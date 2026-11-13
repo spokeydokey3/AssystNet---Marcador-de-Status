@@ -14,28 +14,6 @@
     <div class="stats"><span id="tagCount">0 tags</span><span id="ticketCount">0 com tag</span><span id="queueCount">Fila ainda não conferida</span></div>
   </header>
   <main>
-    <section class="card" aria-labelledby="refreshTitle">
-      <h2 id="refreshTitle">Atualizar a lista de chamados</h2>
-      <label><input type="checkbox" id="refreshEnabled"> Acionar automaticamente o botão Atualizar</label>
-      <label for="refreshInterval">Intervalo</label>
-      <select id="refreshInterval">
-        <option value="30">30 segundos</option><option value="60">1 minuto</option>
-        <option value="120">2 minutos</option><option value="300">5 minutos</option>
-      </select>
-      <label><input type="checkbox" id="refreshBackground"> Permitir também em abas em segundo plano</label>
-      <p id="refreshStatus" class="help" role="status">Verificando a atualização automática…</p>
-      <button id="btnRefreshStatus" class="text-button" type="button">Verificar funcionamento</button>
-      <p class="help">Usa o botão do AssystNet na Página Inicial ou em “Chamados atribuídos a mim”, sem recarregar a página. Pausa durante edições, seleções, carregamento e conferência da fila. Em segundo plano, o navegador pode atrasar os intervalos.</p>
-    </section>
-    <section class="card" aria-labelledby="syncTitle">
-      <h2 id="syncTitle">Manter somente minha fila</h2>
-      <label><input type="checkbox" id="autoSync"> Limpar automaticamente ao conferir a fila</label>
-      <p class="help">Na Página Inicial ou em “Chamados atribuídos a mim”, a extensão percorre sua fila sem filtros e confere duas leituras completas. Tags aplicadas e contatos de chamados ausentes são removidos; as definições das tags continuam disponíveis.</p>
-      <p class="help" id="queueStatus">Abra sua fila completa e atualizada no AssystNet.</p>
-      <button id="btnSync">Conferir e limpar agora</button>
-      <button id="btnRestoreCleanup" class="text-button" hidden>Desfazer a última limpeza e pausar</button>
-      <button id="btnCleanupBackup" class="text-button" hidden>Baixar cópia anterior à limpeza</button>
-    </section>
     <section aria-labelledby="tagsTitle">
       <h2 id="tagsTitle">Suas tags</h2>
       <label class="sr-only" for="tagSearch">Buscar tag</label>
@@ -70,14 +48,8 @@
       <button id="btnMoreTickets" class="text-button" hidden>Mostrar mais</button>
       <p id="ticketListCount" class="help"></p>
     </details>
-    <section class="card" aria-labelledby="reportTitle">
-      <h2 id="reportTitle">Relatório da minha fila</h2>
-      <p id="reportStatus" class="help"></p>
-      <button id="btnCSV" class="primary">Baixar planilha da fila (CSV)</button>
-      <p class="help">Inclui os chamados abertos na última conferência, mesmo sem tag, ordenados por tag e número. As marcações são as atuais. A fila é conferida automaticamente na Página Inicial ou em “Chamados atribuídos a mim”, quando completa e sem filtros. Alterações posteriores no AssystNet aparecem após nova conferência.</p>
-    </section>
     <section id="backupSection" class="card" aria-labelledby="backupTitle">
-      <h2 id="backupTitle">Troca de computador</h2>
+      <h2 id="backupTitle">Backup e troca de computador</h2>
       <p class="help">Antes de sair, salve o backup JSON. No outro computador, instale a extensão e importe esse arquivo.</p>
       <div class="backup-actions">
         <button id="btnExport" class="primary">Salvar backup JSON</button>
@@ -101,6 +73,34 @@
           <button id="btnCancelImport">Cancelar</button>
         </div>
       </div>
+    </section>
+    <section class="card" aria-labelledby="reportTitle">
+      <h2 id="reportTitle">Relatório da minha fila</h2>
+      <p id="reportStatus" class="help"></p>
+      <button id="btnCSV" class="primary">Baixar planilha da fila (CSV)</button>
+      <p class="help">Inclui os chamados abertos na última conferência, mesmo sem tag, ordenados por tag e número. As marcações são as atuais. A fila é conferida automaticamente na Página Inicial ou em “Chamados atribuídos a mim”, quando completa e sem filtros. Alterações posteriores no AssystNet aparecem após nova conferência.</p>
+    </section>
+    <section class="card" aria-labelledby="syncTitle">
+      <h2 id="syncTitle">Limpeza automática das marcações</h2>
+      <label><input type="checkbox" id="autoSync"> Limpar automaticamente ao conferir a fila</label>
+      <p class="help">Na Página Inicial ou em “Chamados atribuídos a mim”, a extensão percorre sua fila sem filtros e confere duas leituras completas. Tags aplicadas e contatos de chamados ausentes são removidos; as definições das tags continuam disponíveis.</p>
+      <p class="help" id="queueStatus">Abra sua fila completa e atualizada no AssystNet.</p>
+      <button id="btnSync">Conferir e limpar agora</button>
+      <button id="btnRestoreCleanup" class="text-button" hidden>Desfazer a última limpeza e pausar</button>
+      <button id="btnCleanupBackup" class="text-button" hidden>Baixar cópia anterior à limpeza</button>
+    </section>
+    <section class="card" aria-labelledby="refreshTitle">
+      <h2 id="refreshTitle">Atualização do AssystNet</h2>
+      <label><input type="checkbox" id="refreshEnabled"> Acionar automaticamente o botão Atualizar</label>
+      <label for="refreshInterval">Intervalo</label>
+      <select id="refreshInterval">
+        <option value="30">30 segundos</option><option value="60">1 minuto</option>
+        <option value="120">2 minutos</option><option value="300">5 minutos</option>
+      </select>
+      <label><input type="checkbox" id="refreshBackground"> Permitir também em abas em segundo plano</label>
+      <p id="refreshStatus" class="help" role="status">Verificando a atualização automática…</p>
+      <button id="btnRefreshStatus" class="text-button" type="button">Verificar funcionamento</button>
+      <p class="help">Usa o botão do AssystNet na Página Inicial ou em “Chamados atribuídos a mim”, sem recarregar a página. Pausa durante edições, seleções, carregamento e conferência da fila. Em segundo plano, o navegador pode atrasar os intervalos.</p>
     </section>
     <p id="feedback" role="status" aria-live="polite"></p>
   </main>

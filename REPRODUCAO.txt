@@ -1,12 +1,12 @@
-Version: 3.8.2
+Version: 3.8.3
 Environment: Linux, Python 3.12.14
 
-AssystNet-3.8.2-submissao.zip
-SHA256: d52d0fe36d99d886b0b645308c49bd7ccc08a28bd3e51780eb2f81b833230614
+AssystNet-3.8.3-submissao.zip
+SHA256: f31b83f0fe4b57696c28c7ab4d9f461ef0e5fe0d2d906ea76e44b98d8088b326
 Build: python3 build.py --browser firefox
 
-AssystNet-3.8.2-chrome.zip
-SHA256: 2c0498f874691a6001c2ecd49800d4b41f9c52aa51bd9153483f002ea0abc761
+AssystNet-3.8.3-chrome.zip
+SHA256: 5d247eb2fb0083f91f204120062251459842bbbc00499a4a4d1388177f714e05
 Build: python3 build.py --browser chrome
 
 Both packages use identical shared JavaScript and the same JSON v3 format.

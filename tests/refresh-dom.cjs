@@ -378,3 +378,36 @@ test('only an expanded control makes a standalone listbox an open menu; stale ro
     assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'dialog');
   } finally { e.close(); }
 });
+
+test('supplied Dijit wrapper uses only its unique native valueNode input and keeps disabled guards', async () => {
+  for (const hash of ['#eventMonitor/4', '#homepage']) {
+    const e = await setup({ hash });
+    try {
+      const button = e.doc.querySelector(hash === '#homepage' ? '[data-test="home"]' : '[data-test="assigned"]');
+      const widget = e.doc.createElement('span'); widget.className = 'dijit dijitButton refreshButton';
+      const node = e.doc.createElement('span'); node.className = 'dijitButtonNode';
+      button.before(widget); widget.append(node); node.append(button);
+      const value = e.doc.createElement('input'); value.type = 'button'; value.className = 'dijitOffScreen';
+      value.setAttribute('aria-hidden', 'true'); value.setAttribute('data-dojo-attach-point', 'valueNode');
+      value.setAttribute('data-dojo-attach-event', 'onclick:_onClick'); widget.append(value);
+      let direct = 0, wrapper = 0;
+      value.addEventListener('click', () => {
+        direct++; button.setAttribute('aria-disabled', 'true');
+        e.w.setTimeout(() => { button.setAttribute('aria-disabled', 'false'); }, 1000);
+      });
+      button.addEventListener('click', () => { wrapper++; value.click(); });
+      value.disabled = true;
+      await e.clock.tickAsync(33000); assert.equal(direct, 0); assert.equal(wrapper, 0);
+      value.disabled = false;
+      await e.clock.tickAsync(33000); assert.equal(direct, 1); assert.equal(wrapper, 0);
+      assert.equal(e.finished, 1);
+      assert.equal(e.w.AssystAutoRefresh.getStatus().automaticAttempts, 1);
+      assert.equal(e.w.AssystAutoRefresh.getStatus().automaticCompletions, 1);
+      button.id = 'uniqName_new_after_navigation';
+      await e.clock.tickAsync(33000); assert.equal(direct, 2); assert.equal(wrapper, 0);
+      assert.equal(e.w.AssystAutoRefresh.getStatus().automaticAttempts, 2);
+      assert.equal(e.w.AssystAutoRefresh.getStatus().automaticCompletions, 2);
+      assert.deepEqual(e.clicks, [], 'no second click through the visible span');
+    } finally { e.close(); }
+  }
+});

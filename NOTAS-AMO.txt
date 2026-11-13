@@ -1,4 +1,4 @@
-AssystNet Status Tagger — Firefox 3.8.2 review notes
+AssystNet Status Tagger — Firefox 3.8.3 review notes
 
 Purpose: local ticket tags and operator-maintained contact checkboxes on the two
 AssystNet hosts declared in the manifest. No official ticket status is changed.
@@ -10,7 +10,7 @@ The ten runtime files are readable JavaScript, HTML and CSS. No framework,
 bundler, transpiler, minifier or external runtime library is used. Source ZIP includes
 build.py, requirements and full step-by-step instructions in CONSTRUIR.md.
 With Python 3.12+ run: python3 build.py --browser firefox
-The output is releases/AssystNet-3.8.2-submissao.zip. Tested on Linux/Python 3.12.14.
+The output is releases/AssystNet-3.8.3-submissao.zip. Tested on Linux/Python 3.12.14.
 No npm dependencies or network access are required to build. The script copies the
 Firefox runtime bytes unchanged, with fixed ZIP metadata; REPRODUCAO.txt records
 the SHA-256. Source-to-submission reproduction was checked byte for byte.
@@ -41,7 +41,7 @@ Changes:
 - New profiles have no preset tags. Explicit existing definitions and legacy referenced
   assignments are preserved. No migration removes user tags.
 
-Testing: 72 automated Node tests (including four Chrome/Firefox portability tests), thirty-four simulated-DOM scenarios and eight Chromium
+Testing: 72 automated Node tests (including four Chrome/Firefox portability tests), thirty-five simulated-DOM scenarios and eight Chromium
 interface/Blob checks with simulated extension APIs passed. Firefox ZIP web-ext
 10.8.0 lint: zero errors, warnings and notices. Firefox/live institutional integration
 must still be tested by an authorized operator. Filter detection depends on the host DOM.
@@ -52,7 +52,7 @@ data. Live institutional access may require an authorized account. No credential
 operational backups or real ticket details are included in the submission.
 
 
-The optional autoRefresh.js introduced in 3.7.0 is retained in 3.8.2. It is disabled by default; interval defaults to
+The optional autoRefresh.js introduced in 3.7.0 is retained in 3.8.3. It is disabled by default; interval defaults to
 60 seconds, with choices 30/60/120/300 seconds. Background tabs are opt-in. A single
 controller timeout is canceled/rescheduled on settings, visibility and navigation.
 It clicks the supplied native eventMonitorRefreshButton on #eventMonitor/4, or the
@@ -77,7 +77,7 @@ No new permissions, external libraries, private page API calls or data format ch
 Dojo markup is modeled from public upstream source; institutional integration is still
 unverified. The actual host loading-indicator DOM and deployed Dojo version are unknown.
 
-Version 3.8.2 narrows interaction detection. Ordinary boolean checkboxes, empty popup
+The inherited 3.8.2 protections narrow interaction detection. Ordinary boolean checkboxes, empty popup
 wrappers and permanent unfocused/unexpanded listboxes are no longer treated as selections.
 Rows/selector inputs must belong to a reference-bearing grid in the own-queue panel;
 explicit aria-selected=false and selection classes on ordinary cells are ignored.
@@ -88,3 +88,14 @@ or an explicit modal signal. Offscreen/transparent dialogs and hidden SPA select
 not pause refresh. The popup reports distinct text/row/menu/dialog pause reasons.
 Genuine selection still prevents clicks; the extension never clears selection to proceed.
 Storage, schema, backup format and permissions are unchanged.
+
+Version 3.8.3 reorders the popup by task relevance: tags, JSON backup, CSV report, cleanup,
+then optional native refresh. No features, IDs, stored marks or formats are removed.
+The new supplied Dijit HTML exposes an input.dijitOffScreen[type=button] with valueNode
+attach point and onclick:_onClick attach event. When exactly one belongs to the same
+.dijitButton, the module clicks that native input once, as the visible __onClick wrapper
+normally forwards to it. Otherwise it clicks only the original visible span. Disabled
+input/widget states still prevent clicks. It does not invoke page objects/private handlers.
+Read-only status includes in-memory automatic-attempt and observed-completion counts for
+this page session; they are not stored or transmitted externally and do not imply server
+success. This triggering change needs confirmation in the institutional session.

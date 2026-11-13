@@ -1,9 +1,21 @@
-# AssystNet · Marcador de Status — Firefox e Chrome 3.8.2
+# AssystNet · Marcador de Status — Firefox e Chrome 3.8.3
 
 Extensão Manifest V3, JavaScript/HTML/CSS puros, sem frameworks, bundlers ou dependências
 de execução. Os dados ficam exclusivamente em `browser.storage.local`, no perfil do navegador.
-As edições Firefox e Chrome 3.8.2 usam o mesmo código de dados, interface e fila. Os manifestos
+As edições Firefox e Chrome 3.8.3 usam o mesmo código de dados, interface e fila. Os manifestos
 e downloads têm adaptação por navegador. Veja CHROME.md para atualizar a instalação Chrome.
+
+## Organização do popup — 3.8.3
+
+As funcionalidades aparecem na ordem do uso principal: tags (lista, criação e chamados
+marcados), backup/troca de computador, relatório, limpeza automática e atualização do AssystNet.
+Os IDs, handlers e formatos de dados foram mantidos. A atualização continua opcional e por último.
+
+Com o markup Dijit fornecido, o clique automático usa o único input nativo valueNode associado
+ao botão. O span visível é a alternativa quando esse input não está identificado com segurança;
+nunca são acionados ambos. Não são usados IDs uniqName nem funções privadas do Dojo. O status
+mostra tentativas automáticas e conclusões observadas desde o carregamento da página, sem
+salvar contadores. A mudança precisa ser validada no AssystNet institucional.
 
 ## Tags criadas por cada operador
 
@@ -29,7 +41,7 @@ Os mesmos recursos estão habilitados nos ambientes interno e externo:
 No mesmo perfil/navegador, ambos usam as mesmas marcações. Entre computadores ou navegadores,
 transfira o backup JSON; a fila conferida deve ser lida novamente no destino.
 
-## Pausas reais e elementos permanentes — 3.8.2
+## Pausas reais e elementos permanentes mantidas
 
 A atualização distingue texto visível selecionado, linhas/seletores da grade da sua fila,
 menus abertos e diálogos visíveis. Listboxes permanentes sem foco/controle expandido,

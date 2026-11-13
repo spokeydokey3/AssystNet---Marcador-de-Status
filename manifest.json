@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "AssystNet - Marcador de Status",
-  "version": "3.8.2",
+  "version": "3.8.3",
   "description": "Tags e tentativas de contato no AssystNet, na fila e no chamado, com backup JSON e relatório CSV.",
   "incognito": "not_allowed",
   "browser_specific_settings": {

@@ -1,15 +1,15 @@
-# Validação do Firefox e Chrome 3.8.2
+# Validação do Firefox e Chrome 3.8.3
 
 - `node --test tests/*.test.cjs`: 72 testes aprovados, com persistência/validação das preferências,
   migração dos dados, callbacks Chrome, transferência JSON/CSV, perfis novos sem presets, fila
   salva após reinício, exportação sem aba, invalidação por importação/undo e falhas atômicas.
 - `tests/dom.cjs`: onze cenários aprovados, incluindo os controles do popup e um único observer.
-- `tests/refresh-dom.cjs`: vinte e três cenários aprovados com jsdom 26.1.0 e temporizadores simulados
+- `tests/refresh-dom.cjs`: vinte e quatro cenários aprovados com jsdom 26.1.0 e temporizadores simulados
   por @sinonjs/fake-timers 13.0.5. Usam o HTML dos botões fornecido pelo usuário e grids sintéticos.
 - `tests/chrome-browser.cjs`: quatro verificações Chromium/Playwright 1.64.1 aprovadas com APIs
   WebExtension simuladas, incluindo a UI existente e URLs Blob com Unicode.
 - `tests/refresh-browser.cjs`: quatro cenários Chromium aprovados com DOM real e relógio
-  controlado: dois hosts, duas telas, clique encaminhado pelo input oculto (modelo _ButtonMixin),
+  controlado: dois hosts, duas telas, clique direto no input valueNode único do markup fornecido,
   animação de um segundo sem mudanças de dados, menu estacionado, wrapper vazio, lista permanente, checkbox booleano, diálogo offscreen e
   dois ciclos com um observer.
   A resposta do servidor, APIs da extensão e o widget são simulados; não executa o Dojo real.
@@ -17,7 +17,18 @@
 - Pacotes reproduzidos byte a byte a partir do ZIP de fontes. JavaScripts compartilhados iguais
   nas duas edições. Nenhuma nova permissão.
 - Os quatro testes de portabilidade foram executados também com os arquivos dos ZIPs 3.6.0 e
-  3.8.2, em ambas as combinações Firefox/Chrome. O JSON permanece v3 e o CSV mantém os bytes/BOM.
+  3.8.3, em ambas as combinações Firefox/Chrome. O JSON permanece v3 e o CSV mantém os bytes/BOM.
+
+## Popup e botão nativo em 3.8.3
+
+O popup foi renderizado a 380px no Chromium e inspecionado visualmente. A lista de tags,
+criação/gerenciamento, backup, relatório, limpeza e atualização estão nessa ordem. Os handlers
+existentes do popup passam pelos mesmos testes de preferências, relatório e recuperação.
+O caso novo do Dijit confere input desabilitado, IDs dinâmicos e um único acionamento do
+valueNode nas duas telas, sem segundo clique no span. O Chromium usa o markup completo
+fornecido e mantém dois ciclos por tela/host simulado. Os contadores verificam tentativas e
+conclusões observadas. A versão/DOM implantados no tribunal não foram acessados; a falha real
+não foi reproduzida numa sessão autenticada e este ajuste ainda depende de teste do operador.
 
 ## Fila salva e Página Inicial
 
@@ -30,7 +41,7 @@ Fila vazia pode gerar relatório vazio sem apagar as marcações. Mudanças de s
 leituras rejeitam a nova conferência. São preservadas a última lista válida e a cópia de recuperação
 quando a gravação falha. Há apenas um observer. Os hosts são simulados, não acessados na rede.
 
-## Correção da falsa seleção em 3.8.2
+## Correção da falsa seleção mantida da 3.8.2
 
 Foram reproduzidas pausas falsas da versão anterior com lista permanente e seleção de painel
 oculto. Os testes novos cobrem listas/listboxes sem relação com controles expandidos, wrappers

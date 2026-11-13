@@ -1,4 +1,4 @@
-# Atualização automática nativa — 3.8.2
+# Atualização automática nativa — 3.8.3
 
 O recurso aciona o botão Atualizar do próprio AssystNet. Não usa recarregamento do navegador,
 atalhos de teclado nem reproduz requisições internas. Não altera status, atribuição ou conteúdo
@@ -27,7 +27,7 @@ No popup, **Verificar funcionamento** consulta o estado da aba de origem, sem cl
 nativo. Pode indicar intervalo, campo em edição, seleção/menu aberto, conferência da fila,
 carregamento, segundo plano ou ausência do código na aba. Não transmite dados nem altera marcas.
 
-Em 3.8.2, wrappers .dijitPopup estacionados fora da tela não são considerados menus abertos.
+Em 3.8.3, wrappers .dijitPopup estacionados fora da tela não são considerados menus abertos.
 O carregamento inclui os underlays de dojox/widget/Standby, movidos para body e animados por
 style (display/opacity). A conclusão pode ser observada mesmo sem mudanças nos chamados.
 Os cliques manuais também são acompanhados com a opção automática desligada, para a leitura
@@ -37,9 +37,24 @@ O formato padrão de Standby foi conferido no código público DojoX 1.17.3:
 https://github.com/dojo/dojox/blob/1.17.3/widget/Standby.js
 O HTML exato do indicador institucional não foi inspecionado.
 
+## Clique no controle nativo fornecido — 3.8.3
+
+O HTML completo fornecido possui .dijitButton, o span com data-component-tag e um input
+.dijitOffScreen de type=button, data-dojo-attach-point=valueNode e
+ data-dojo-attach-event=onclick:_onClick. O módulo aciona esse input único do mesmo widget,
+que recebe a ação final encaminhada pelo span no Dijit. O botão visível continua sendo usado
+para identificar a tela e confirmar visibilidade/estado; input ou widget desabilitado impede
+cliques. Se não houver um único input com esse contrato, aciona somente o span original.
+Não tenta clicar ambos, não chama objetos/handlers privados e não usa IDs dinâmicos.
+
+O status inclui acionamentos automáticos e conclusões observadas desde que a página carregou.
+Esses contadores ficam apenas na memória e não são prova de sucesso do servidor. A animação
+pode confirmar conclusão visual mesmo quando os dados não mudam. Atualizar a aba pelo navegador
+reinicia os contadores; cliques manuais não entram no total automático.
+
 ## Seleções e menus efetivamente abertos
 
-A partir de 3.8.2, o popup distingue texto selecionado, linha marcada, menu e diálogo. A
+Desde a correção 3.8.2, o popup distingue texto selecionado, linha marcada, menu e diálogo. A
 seleção de texto precisa ter conteúdo e estar visível na área da fila; ranges de painéis
 ocultos não bloqueiam. Linhas marcadas precisam pertencer à grade com referências do chamado
 no painel próprio. Classes em células comuns, aria-selected=false e checkboxes booleanos

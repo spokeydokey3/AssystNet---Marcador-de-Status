@@ -10,6 +10,7 @@
   let settings = AssystData.refreshSettings();
   let timer = 0, nextAt = 0, stopped = false, revision = 0, lastInteraction = -Infinity;
   let route = hash(), flight = null;
+  let automaticAttempts = 0, automaticCompletions = 0;
 
   function hash() { try { return window.top.location.hash || location.hash; } catch { return location.hash; } }
   function visible(node) {
@@ -21,6 +22,16 @@
     try { if (window.frameElement && window.frameElement.getClientRects().length === 0) return false; } catch { /* Cross-origin parents are not inspected. */ }
     return true;
   }
+  function clickControl(button) {
+    const widget = button.closest('.dijitButton');
+    if (!widget) return button;
+    // The supplied Dijit markup forwards __onClick to this native valueNode._onClick.
+    // Choose exactly one action; never click both the span and its input.
+    const inputs = [...widget.querySelectorAll('input[type="button"].dijitOffScreen[data-dojo-attach-point~="valueNode"]')]
+      .filter(input => input.closest('.dijitButton') === widget &&
+        (input.getAttribute('data-dojo-attach-event') || '').replace(/\s/g, '').includes('onclick:_onClick'));
+    return inputs.length === 1 ? inputs[0] : button;
+  }
   function target() {
     const current = hash();
     if (/^#eventMonitor\/4\/?$/i.test(current)) {
@@ -30,7 +41,7 @@
         if (select.closest(OWNED) || !visible(select)) continue;
         if ([...select.options].some(option => fold(option.textContent) === TITLE) && fold(select.selectedOptions[0]?.textContent) !== TITLE) return null;
       }
-      return { button: buttons[0], root: document.body, kind: 'assigned' };
+      return { button: buttons[0], action: clickControl(buttons[0]), root: document.body, kind: 'assigned' };
     }
     if (/^#homepage\/?$/i.test(current)) {
       const headers = [...document.querySelectorAll('.axios-homepage-titlebar-outer')].filter(header =>
@@ -45,11 +56,12 @@
         root = p;
         if (p.querySelector('.dgrid, [role="grid"]')) break;
       }
-      return { button: buttons[0], root, kind: 'home' };
+      return { button: buttons[0], action: clickControl(buttons[0]), root, kind: 'home' };
     }
     return null;
   }
   function nativeBusy(current) {
+    if (current.action.matches(':disabled, [aria-disabled="true"]')) return true;
     for (let p = current.button; p; p = p.parentElement) {
       if (p.matches(':disabled, [aria-disabled="true"], [aria-busy="true"], .dijitDisabled, .dijitButtonDisabled')) return true;
       if (p === current.root) break;
@@ -136,9 +148,9 @@
       nextAt = Date.now() + delay; timer = setTimeout(tick, delay);
     }
   }
-  function begin() {
+  function begin(automatic = false) {
     clearTimer();
-    flight = { route: hash(), started: Date.now(), lastChange: Date.now(), sawBusy: false, sawData: false, uncertain: false };
+    flight = { route: hash(), automatic, started: Date.now(), lastChange: Date.now(), sawBusy: false, sawData: false, uncertain: false };
     schedule();
   }
   function tick() {
@@ -155,6 +167,7 @@
       const busy = nativeBusy(current);
       if (busy) { flight.sawBusy = true; flight.lastChange = Date.now(); }
       if (!busy && (flight.sawData || flight.sawBusy) && Date.now() - flight.lastChange >= 750) {
+        if (flight.automatic) automaticCompletions++;
         flight = null;
         globalThis.AssystTaggerUI?.refreshAfterLoading?.();
         globalThis.AssystQueueSync?.refreshFinished();
@@ -169,8 +182,8 @@
     if (!settings.enabled || (!settings.background && document.hidden)) { schedule(); return; }
     if (!current || nativeBusy(current)) { schedule(); return; }
     if (userBusy(current)) { schedule(1000); return; }
-    begin();
-    try { current.button.click(); }
+    automaticAttempts++; begin(true);
+    try { current.action.click(); }
     catch { flight.uncertain = true; clearTimer(); }
   }
   function navigate() {
@@ -225,7 +238,7 @@
   document.addEventListener('click', event => {
     if (stopped) return;
     const current = target();
-    if (current && !nativeBusy(current) && current.button.contains(event.target) && (!flight || flight.uncertain)) begin();
+    if (current && !nativeBusy(current) && (current.button.contains(event.target) || current.action === event.target) && (!flight || flight.uncertain)) begin();
   }, true);
   for (const name of ['hashchange', 'popstate']) window.addEventListener(name, navigate);
   document.addEventListener('visibilitychange', () => schedule());
@@ -260,8 +273,10 @@
       dialog: 'Pausada: há uma janela de diálogo aberta no AssystNet.',
       waiting: `Ativa: aguardando o intervalo de ${settings.intervalSeconds} segundos.`
     };
+    const counters = settings.enabled ? ` Acionamentos automáticos nesta página: ${automaticAttempts}; conclusões observadas: ${automaticCompletions}.` : '';
     return { enabled: settings.enabled, intervalSeconds: settings.intervalSeconds, pending: !!flight,
-      paused: !!flight?.uncertain, reason, message: messages[reason], nextAt: nextAt || null };
+      paused: !!flight?.uncertain, reason, message: messages[reason] + counters, nextAt: nextAt || null,
+      automaticAttempts, automaticCompletions };
   }
   browser.runtime?.onMessage?.addListener((message, sender) => {
     if (sender.id !== browser.runtime.id || message?.type !== 'assyst-refresh' || message.action !== 'status' || !target()) return undefined;
