@@ -157,7 +157,7 @@ test('editing, selections, modal dialogs, tag writes and queue scans defer autom
   const e = await setup();
   try {
     e.doc.getElementById('editor').focus(); await e.clock.tickAsync(30000); assert.equal(e.clicks.length, 0);
-    e.doc.getElementById('editor').blur(); e.doc.getElementById('dialog').hidden = false;
+    e.doc.getElementById('editor').blur(); e.doc.getElementById('dialog').textContent = 'Diálogo aberto'; e.doc.getElementById('dialog').hidden = false;
     await e.clock.tickAsync(2000); assert.equal(e.clicks.length, 0);
     e.doc.getElementById('dialog').hidden = true; e.queueBusy(true); await e.clock.tickAsync(2000); assert.equal(e.clicks.length, 0);
     e.queueBusy(false); e.tagBusy(true); await e.clock.tickAsync(2000); assert.equal(e.clicks.length, 0);
@@ -286,8 +286,9 @@ test('status explains editing, active and parked menus, loading and uncertain co
     assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'editing');
     e.doc.getElementById('editor').blur();
     const popup = e.doc.createElement('div'); popup.className = 'dijitPopup';
+    popup.innerHTML = '<div role="menuitem">Abrir</div>';
     e.doc.body.append(popup);
-    assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'selection');
+    assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'menu');
     popup.style.left = '-10000px';
     assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'waiting');
     const standby = e.doc.querySelector('[data-dojo-attach-point="_underlayNode"]');
@@ -298,5 +299,82 @@ test('status explains editing, active and parked menus, loading and uncertain co
     assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'unknown');
     e.settings(prefs({ enabled: false }));
     assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'disabled');
+  } finally { e.close(); }
+});
+
+test('persistent listboxes, empty popup wrappers and ordinary boolean cells are not active selections', async () => {
+  for (const kind of ['listbox', 'emptyPopup', 'boolean', 'cellClass', 'offscreenDialog']) {
+    const e = await setup();
+    try {
+      const node = e.doc.createElement(kind === 'boolean' ? 'input' : 'div');
+      if (kind === 'listbox') { node.setAttribute('role', 'listbox'); node.innerHTML = '<div role="option">Item fixo</div>'; }
+      if (kind === 'emptyPopup') node.className = 'dijitPopup';
+      if (kind === 'boolean') { node.type = 'checkbox'; node.checked = true; }
+      if (kind === 'cellClass') node.className = 'dgrid-selected';
+      if (kind === 'offscreenDialog') { node.setAttribute('role', 'dialog'); node.style.left = '-10000px'; node.textContent = 'Diálogo estacionado'; }
+      (kind === 'boolean' || kind === 'cellClass' ? e.doc.querySelector('#assigned td') : e.doc.body).append(node);
+      assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'waiting', kind);
+      await e.clock.tickAsync(33000);
+      assert.deepEqual(e.clicks, ['assigned'], kind);
+    } finally { e.close(); }
+  }
+});
+
+test('stale selections in a hidden panel and selected rows in unrelated grids do not pause the queue', async () => {
+  const e = await setup({ hash: '#homepage' });
+  try {
+    const range = e.doc.createRange(); range.selectNodeContents(e.doc.querySelector('#assigned td'));
+    e.doc.getSelection().addRange(range);
+    const other = e.doc.querySelector('#home > section:last-child');
+    other.innerHTML += '<div class="dgrid"><div class="dgrid-row dgrid-selected" role="row" aria-selected="true">Other grid</div></div>';
+    assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'waiting');
+    await e.clock.tickAsync(33000);
+    assert.deepEqual(e.clicks, ['home']);
+  } finally { e.close(); }
+});
+
+test('actual row selectors, open menus, visible dialogs and text selection report distinct pause reasons', async () => {
+  const e = await setup();
+  try {
+    const row = e.doc.querySelector('#assigned tr');
+    row.classList.add('dgrid-selected');
+    assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'rowSelection');
+    row.classList.remove('dgrid-selected');
+    const box = e.doc.createElement('input'); box.type = 'checkbox'; box.className = 'dgrid-selector'; box.checked = true;
+    row.append(box);
+    assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'rowSelection');
+    box.remove();
+    const popup = e.doc.createElement('div'); popup.className = 'dijitPopup';
+    popup.innerHTML = '<div role="menu"><div role="menuitem">Abrir</div></div>'; e.doc.body.append(popup);
+    assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'menu');
+    popup.remove();
+    e.doc.getElementById('dialog').textContent = 'Ação em andamento'; e.doc.getElementById('dialog').textContent = 'Diálogo aberto'; e.doc.getElementById('dialog').hidden = false;
+    assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'dialog');
+    e.doc.getElementById('dialog').hidden = true;
+    const range = e.doc.createRange(); range.selectNodeContents(e.doc.querySelector('#assigned td'));
+    e.doc.getSelection().addRange(range);
+    assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'textSelection');
+    await e.clock.tickAsync(33000); assert.equal(e.clicks.length, 0);
+    e.doc.getSelection().removeAllRanges();
+    await e.clock.tickAsync(2000); assert.equal(e.clicks.length, 1);
+  } finally { e.close(); }
+});
+
+test('only an expanded control makes a standalone listbox an open menu; stale row ARIA and transparent dialogs are ignored', async () => {
+  const e = await setup();
+  try {
+    const control = e.doc.createElement('button'); control.setAttribute('aria-controls', 'options'); control.setAttribute('aria-expanded', 'false');
+    const menu = e.doc.createElement('div'); menu.id = 'options'; menu.setAttribute('role', 'listbox'); menu.innerHTML = '<div role="option">Opção</div>';
+    e.doc.body.append(control, menu);
+    const row = e.doc.querySelector('#assigned tr'); row.classList.add('dgrid-selected'); row.setAttribute('aria-selected', 'false');
+    const dialog = e.doc.getElementById('dialog'); dialog.hidden = false; dialog.style.opacity = '0'; dialog.innerHTML = '<p>Diálogo fechado</p>';
+    assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'waiting');
+    control.setAttribute('aria-expanded', 'true');
+    assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'menu');
+    await e.clock.tickAsync(33000); assert.equal(e.clicks.length, 0);
+    control.setAttribute('aria-expanded', 'false');
+    await e.clock.tickAsync(3000); assert.equal(e.clicks.length, 1);
+    dialog.style.opacity = '1';
+    assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'dialog');
   } finally { e.close(); }
 });

@@ -1,4 +1,4 @@
-# Fila salva e tags pessoais — 3.8.1
+# Fila salva e tags pessoais — 3.8.2
 
 ## Planilha de qualquer tela
 

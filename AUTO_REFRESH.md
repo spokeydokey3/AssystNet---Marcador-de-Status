@@ -1,4 +1,4 @@
-# Atualização automática nativa — 3.8.1
+# Atualização automática nativa — 3.8.2
 
 O recurso aciona o botão Atualizar do próprio AssystNet. Não usa recarregamento do navegador,
 atalhos de teclado nem reproduz requisições internas. Não altera status, atribuição ou conteúdo
@@ -27,7 +27,7 @@ No popup, **Verificar funcionamento** consulta o estado da aba de origem, sem cl
 nativo. Pode indicar intervalo, campo em edição, seleção/menu aberto, conferência da fila,
 carregamento, segundo plano ou ausência do código na aba. Não transmite dados nem altera marcas.
 
-Em 3.8.1, wrappers .dijitPopup estacionados fora da tela não são considerados menus abertos.
+Em 3.8.2, wrappers .dijitPopup estacionados fora da tela não são considerados menus abertos.
 O carregamento inclui os underlays de dojox/widget/Standby, movidos para body e animados por
 style (display/opacity). A conclusão pode ser observada mesmo sem mudanças nos chamados.
 Os cliques manuais também são acompanhados com a opção automática desligada, para a leitura
@@ -36,6 +36,20 @@ Mudanças contínuas da animação não adiam a verificação independente do pr
 O formato padrão de Standby foi conferido no código público DojoX 1.17.3:
 https://github.com/dojo/dojox/blob/1.17.3/widget/Standby.js
 O HTML exato do indicador institucional não foi inspecionado.
+
+## Seleções e menus efetivamente abertos
+
+A partir de 3.8.2, o popup distingue texto selecionado, linha marcada, menu e diálogo. A
+seleção de texto precisa ter conteúdo e estar visível na área da fila; ranges de painéis
+ocultos não bloqueiam. Linhas marcadas precisam pertencer à grade com referências do chamado
+no painel próprio. Classes em células comuns, aria-selected=false e checkboxes booleanos
+sem a função dgrid-selector não são interpretados como seleção de linha.
+
+Um wrapper .dijitPopup vazio não é um menu aberto. Listboxes/menus permanentes só bloqueiam
+quando têm itens visíveis e pertencem a um popup, têm foco ou são expostos por um controle
+aria-expanded=true (aria-controls/aria-owns). Diálogos precisam estar na tela, sem opacity=0,
+e ter conteúdo/controles visíveis ou indicação modal explícita. As seleções reais continuam
+pausando os cliques; não são limpas para permitir a atualização.
 
 ## Telas e seletores
 

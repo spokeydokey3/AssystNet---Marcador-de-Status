@@ -1,4 +1,4 @@
-# Reprodução dos pacotes — 3.8.1
+# Reprodução dos pacotes — 3.8.2
 
 As fontes legíveis são mantidas diretamente. O pacote Firefox contém dez arquivos na raiz:
 manifest.json, data.js, background.js, queue.js, content.js, popup.html, popup.css, popup.js, detail.js e autoRefresh.js.
@@ -16,7 +16,7 @@ concatenação, minificação, bibliotecas externas ou acesso à rede durante a 
 
 ## Passos completos para reproduzir o Firefox
 
-1. Extraia `AssystNet-3.8.1-fontes.zip`.
+1. Extraia `AssystNet-3.8.2-fontes.zip`.
 2. Abra um terminal na pasta que contém `manifest.json` e `build.py`.
 3. Execute:
 
@@ -32,11 +32,11 @@ py -3.12 --version
 py -3.12 build.py --browser firefox
 ```
 
-4. O resultado é `releases/AssystNet-3.8.1-submissao.zip`.
+4. O resultado é `releases/AssystNet-3.8.2-submissao.zip`.
 5. O SHA-256 é impresso pelo script e registrado em `REPRODUCAO.txt`. Para comparar com o ZIP enviado:
 
 ```sh
-python3 build.py --browser firefox --verify /caminho/AssystNet-3.8.1-submissao.zip
+python3 build.py --browser firefox --verify /caminho/AssystNet-3.8.2-submissao.zip
 ```
 
 No Windows, use `py -3.12` no lugar de `python3` e informe o caminho local entre aspas.
@@ -51,14 +51,14 @@ permissões Chrome ao Firefox. Para construir esta atualização Chrome, execute
 python3 build.py --browser chrome
 ```
 
-O resultado é `releases/AssystNet-3.8.1-chrome.zip`. Para reproduzir e comparar os bytes:
+O resultado é `releases/AssystNet-3.8.2-chrome.zip`. Para reproduzir e comparar os bytes:
 
 ```sh
-python3 build.py --browser chrome --verify /caminho/AssystNet-3.8.1-chrome.zip
+python3 build.py --browser chrome --verify /caminho/AssystNet-3.8.2-chrome.zip
 ```
 
-Esta entrega inclui `AssystNet-3.8.1-fontes.zip`, com os fontes compartilhados. Ele pode
-ser reproduzido por `python3 build.py --sources --output releases/AssystNet-3.8.1-fontes.zip`.
+Esta entrega inclui `AssystNet-3.8.2-fontes.zip`, com os fontes compartilhados. Ele pode
+ser reproduzido por `python3 build.py --sources --output releases/AssystNet-3.8.2-fontes.zip`.
 O pacote Chrome usa os mesmos serializadores e formato JSON v3 do Firefox 3.6.0.
 
 ## Validação opcional
@@ -87,9 +87,9 @@ para os resultados e limites. Para lint, extraia o ZIP Firefox em uma pasta e ex
 
 ## Arquivos para distribuição
 
-- `AssystNet-3.8.1-submissao.zip`: nova versão da extensão.
-- `AssystNet-3.8.1-fontes.zip`: campo **Enviar código-fonte** da mesma submissão 3.8.1; fontes compartilhados das duas edições.
-- `AssystNet-3.8.1-chrome.zip`: pacote Chrome para teste e envio como atualização no cadastro existente da Chrome Web Store.
+- `AssystNet-3.8.2-submissao.zip`: nova versão da extensão.
+- `AssystNet-3.8.2-fontes.zip`: campo **Enviar código-fonte** da mesma submissão 3.8.2; fontes compartilhados das duas edições.
+- `AssystNet-3.8.2-chrome.zip`: pacote Chrome para teste e envio como atualização no cadastro existente da Chrome Web Store.
 
 O ZIP de execução não inclui testes, bibliotecas, ferramentas, dados reais de chamados,
 credenciais ou versões anteriores. O ZIP de fontes inclui o necessário para construir e conferir.

@@ -1,22 +1,23 @@
-# Validação do Firefox e Chrome 3.8.1
+# Validação do Firefox e Chrome 3.8.2
 
 - `node --test tests/*.test.cjs`: 72 testes aprovados, com persistência/validação das preferências,
   migração dos dados, callbacks Chrome, transferência JSON/CSV, perfis novos sem presets, fila
   salva após reinício, exportação sem aba, invalidação por importação/undo e falhas atômicas.
 - `tests/dom.cjs`: onze cenários aprovados, incluindo os controles do popup e um único observer.
-- `tests/refresh-dom.cjs`: dezenove cenários aprovados com jsdom 26.1.0 e temporizadores simulados
+- `tests/refresh-dom.cjs`: vinte e três cenários aprovados com jsdom 26.1.0 e temporizadores simulados
   por @sinonjs/fake-timers 13.0.5. Usam o HTML dos botões fornecido pelo usuário e grids sintéticos.
 - `tests/chrome-browser.cjs`: quatro verificações Chromium/Playwright 1.64.1 aprovadas com APIs
   WebExtension simuladas, incluindo a UI existente e URLs Blob com Unicode.
 - `tests/refresh-browser.cjs`: quatro cenários Chromium aprovados com DOM real e relógio
   controlado: dois hosts, duas telas, clique encaminhado pelo input oculto (modelo _ButtonMixin),
-  animação de um segundo sem mudanças de dados, menu estacionado e dois ciclos com um observer.
+  animação de um segundo sem mudanças de dados, menu estacionado, wrapper vazio, lista permanente, checkbox booleano, diálogo offscreen e
+  dois ciclos com um observer.
   A resposta do servidor, APIs da extensão e o widget são simulados; não executa o Dojo real.
 - Pacote Firefox: web-ext 10.8.0, zero erros, avisos e notificações.
 - Pacotes reproduzidos byte a byte a partir do ZIP de fontes. JavaScripts compartilhados iguais
   nas duas edições. Nenhuma nova permissão.
 - Os quatro testes de portabilidade foram executados também com os arquivos dos ZIPs 3.6.0 e
-  3.8.1, em ambas as combinações Firefox/Chrome. O JSON permanece v3 e o CSV mantém os bytes/BOM.
+  3.8.2, em ambas as combinações Firefox/Chrome. O JSON permanece v3 e o CSV mantém os bytes/BOM.
 
 ## Fila salva e Página Inicial
 
@@ -29,7 +30,17 @@ Fila vazia pode gerar relatório vazio sem apagar as marcações. Mudanças de s
 leituras rejeitam a nova conferência. São preservadas a última lista válida e a cópia de recuperação
 quando a gravação falha. Há apenas um observer. Os hosts são simulados, não acessados na rede.
 
-## Correção de atualização nativa
+## Correção da falsa seleção em 3.8.2
+
+Foram reproduzidas pausas falsas da versão anterior com lista permanente e seleção de painel
+oculto. Os testes novos cobrem listas/listboxes sem relação com controles expandidos, wrappers
+vazios, booleanos da tabela, classes em células comuns, diálogos offscreen/transparentes,
+aria-selected=false, seleção de outra grade e texto em painel oculto. Textos visíveis, linhas
+reais, seletores dgrid, menus expandidos e diálogos com conteúdo mantêm as pausas corretas.
+Cada categoria apresenta sua própria mensagem. O navegador real também executa dois ciclos
+com os elementos permanentes presentes nas duas telas e nos dois hosts simulados.
+
+## Correção de atualização nativa mantida
 
 Quatro cenários novos reproduziram falhas da 3.8.0 antes da alteração: Standby somente por style,
 menu offscreen, ausência de proteção de clique manual com a opção desligada e animações

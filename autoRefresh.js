@@ -60,22 +60,66 @@
     return [...(root.matches(LOADING) ? [root] : []), ...root.querySelectorAll(LOADING), ...document.querySelectorAll(STANDBY)]
       .some(node => !node.closest(OWNED) && visible(node));
   }
-  function userBusy() {
+  function onScreen(node) {
+    if (!visible(node) || node.closest('[inert]')) return false;
+    for (let parent = node; parent; parent = parent.parentElement) {
+      if (getComputedStyle(parent).opacity === '0') return false;
+    }
+    const rect = node.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0 && rect.right > 0 && rect.bottom > 0 && rect.left < innerWidth && rect.top < innerHeight;
+  }
+  function hasMenuItems(node) {
+    return [...node.querySelectorAll('[role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"], .dijitMenuItem, button, a[href], input:not([type="hidden"]), [tabindex]:not([tabindex="-1"])')]
+      .some(onScreen);
+  }
+  function hasVisibleText(node) {
+    const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+      if (walker.currentNode.textContent.trim() && onScreen(walker.currentNode.parentElement)) return true;
+    }
+    return false;
+  }
+  function openMenu(node, active) {
+    if (!onScreen(node) || !hasMenuItems(node)) return false;
+    if (node.closest('.dijitPopup')) return true;
+    if (node.getAttribute('aria-expanded') === 'false') return false;
+    if ((active && node.contains(active)) || node.getAttribute('aria-expanded') === 'true') return true;
+    if (!node.id) return false;
+    return [...document.querySelectorAll('[aria-expanded="true"][aria-controls], [aria-expanded="true"][aria-owns]')]
+      .some(control => onScreen(control) && `${control.getAttribute('aria-controls') || ''} ${control.getAttribute('aria-owns') || ''}`.split(/\s+/).includes(node.id));
+  }
+  function selectedText(current) {
+    const selection = document.getSelection();
+    if (!selection || selection.isCollapsed || !selection.rangeCount) return false;
+    const element = node => node?.nodeType === 1 ? node : node?.parentElement;
+    const start = element(selection.anchorNode), end = element(selection.focusNode);
+    if (!start || !end || start.closest(OWNED) || end.closest(OWNED) || !visible(start) || !visible(end)) return false;
+    const range = selection.getRangeAt(0);
+    if (!range.intersectsNode(current.root) || !selection.toString().trim()) return false;
+    // Hidden/offscreen ranges left behind by the SPA are not an operator copying text.
+    return typeof range.getClientRects !== 'function' || [...range.getClientRects()]
+      .some(rect => rect.width > 0 && rect.height > 0 && rect.right > 0 && rect.bottom > 0 && rect.left < innerWidth && rect.top < innerHeight);
+  }
+  function userBusy(current) {
     if (Date.now() - lastInteraction < 2000) return 'activity';
     if (globalThis.AssystQueueSync?.isBusy()) return 'scan';
     if (globalThis.AssystTaggerUI?.isBusy()) return 'marks';
     const active = document.activeElement;
     if (active && active !== document.body && active.matches('input, textarea, select, [contenteditable="true"]')) return 'editing';
-    const selection = document.getSelection();
-    if (selection && !selection.isCollapsed) return 'selection';
-    for (const node of document.querySelectorAll('[role="dialog"], [aria-modal="true"], .dijitPopup, [role="menu"], [role="listbox"], .dgrid-selected, [role="row"][aria-selected="true"], .dgrid input[type="checkbox"]:checked, [role="grid"] input[type="checkbox"]:checked, .dgrid input[type="radio"]:checked')) {
+    if (selectedText(current)) return 'textSelection';
+    for (const node of document.querySelectorAll('[role="dialog"], [aria-modal="true"], dialog[open]')) {
+      if (!node.closest(OWNED) && onScreen(node) &&
+          (node.getAttribute('aria-modal') === 'true' || hasMenuItems(node) || (active && node.contains(active)) || hasVisibleText(node))) return 'dialog';
+    }
+    for (const node of document.querySelectorAll('.dijitPopup, [role="menu"], [role="listbox"]')) {
+      if (!node.closest(OWNED) && openMenu(node, active)) return 'menu';
+    }
+    for (const node of current.root.querySelectorAll('.dgrid-selected, [role="row"][aria-selected="true"], input.dgrid-selector:checked, .dgrid-selector input:checked')) {
       if (node.closest(OWNED) || !visible(node)) continue;
-      if (node.matches('.dijitPopup, [role="menu"], [role="listbox"]')) {
-        const rect = node.getBoundingClientRect();
-        // Dojo parks closed menu wrappers at negative coordinates instead of display:none.
-        if (rect.width <= 0 || rect.height <= 0 || rect.right <= 0 || rect.bottom <= 0 || rect.left >= innerWidth || rect.top >= innerHeight) continue;
-      }
-      return 'selection';
+      const grid = node.closest('.dgrid, [role="grid"]');
+      if (!grid?.querySelector('td.field-eventRef, th.field-eventRef, .dgrid-header .field-eventRef')) continue;
+      if (node.matches('input[type="checkbox"], input[type="radio"]') ||
+          (node.matches('tr, [role="row"], .dgrid-row') && node.getAttribute('aria-selected') !== 'false')) return 'rowSelection';
     }
     return null;
   }
@@ -124,7 +168,7 @@
     }
     if (!settings.enabled || (!settings.background && document.hidden)) { schedule(); return; }
     if (!current || nativeBusy(current)) { schedule(); return; }
-    if (userBusy()) { schedule(1000); return; }
+    if (userBusy(current)) { schedule(1000); return; }
     begin();
     try { current.button.click(); }
     catch { flight.uncertain = true; clearTimer(); }
@@ -198,7 +242,7 @@
   function getStatus() {
     const current = target();
     const reason = !settings.enabled ? 'disabled' : flight?.uncertain ? 'unknown' : flight ? 'updating' :
-      !settings.background && document.hidden ? 'hidden' : !current ? 'unsupported' : nativeBusy(current) ? 'loading' : userBusy() || 'waiting';
+      !settings.background && document.hidden ? 'hidden' : !current ? 'unsupported' : nativeBusy(current) ? 'loading' : userBusy(current) || 'waiting';
     const messages = {
       disabled: 'Atualização automática desligada.',
       unknown: 'Pausada: não foi possível confirmar o fim da atualização. Uma atualização manual concluída ou a troca de tela permite tentar novamente.',
@@ -210,7 +254,10 @@
       scan: 'Aguardando a conferência da fila terminar.',
       marks: 'Aguardando o salvamento das marcações ou o fechamento da janela de edição.',
       editing: 'Pausada: há um campo em edição. Clique fora dele para continuar.',
-      selection: 'Pausada: há seleção de texto/linha ou um menu aberto.',
+      textSelection: 'Pausada: há texto selecionado na página. Clique em uma área vazia para continuar.',
+      rowSelection: 'Pausada: há uma linha marcada na tabela da sua fila.',
+      menu: 'Pausada: há um menu aberto. Feche o menu para continuar.',
+      dialog: 'Pausada: há uma janela de diálogo aberta no AssystNet.',
       waiting: `Ativa: aguardando o intervalo de ${settings.intervalSeconds} segundos.`
     };
     return { enabled: settings.enabled, intervalSeconds: settings.intervalSeconds, pending: !!flight,

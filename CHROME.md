@@ -1,4 +1,4 @@
-# AssystNet para Chrome — 3.8.1
+# AssystNet para Chrome — 3.8.2
 
 Esta é uma extensão Manifest V3 para Chrome desktop 116 ou posterior. Usa os mesmos
 dados, tags, quatro tentativas de contato, interface e relatórios da versão Firefox.
@@ -6,7 +6,7 @@ dados, tags, quatro tentativas de contato, interface e relatórios da versão Fi
 
 ## Instalar para testar
 
-1. Baixe e extraia `AssystNet-3.8.1-chrome.zip` em uma pasta permanente.
+1. Baixe e extraia `AssystNet-3.8.2-chrome.zip` em uma pasta permanente.
 2. Abra `chrome://extensions` e ative **Modo do desenvolvedor**.
 3. Clique em **Carregar sem compactação** e selecione a pasta extraída que contém `manifest.json`.
 4. No menu de extensões, fixe o ícone do AssystNet se desejar.
@@ -69,16 +69,23 @@ lista. Alterações posteriores no servidor exigem nova conferência. A lista n�
 é invalidada ao importar JSON ou desfazer limpeza. Ambos os hosts do manifesto usam os mesmos
 recursos e dados no mesmo perfil. Veja QUEUE_REPORT.md.
 
-## Correção de agendamento
+## Detecção de pausas em 3.8.2
 
-A versão 3.8.1 reconhece o fim da animação de Standby mesmo sem mudança de dados e ignora menus
+A pausa por seleção foi restringida a texto visível, seletores/linhas reais da fila, menus
+abertos com itens visíveis e diálogos na tela. Contêineres permanentes, wrappers vazios,
+checkboxes comuns e seleções de painéis ocultos não bloqueiam. O popup diferencia os motivos.
+As proteções para uma seleção real continuam ativas. Os dados e o JSON não foram alterados.
+
+## Correção de agendamento mantida
+
+A versão 3.8.2 reconhece o fim da animação de Standby mesmo sem mudança de dados e ignora menus
 Dojo estacionados fora da tela. A leitura da fila aguarda atualizações manuais e automáticas.
 O popup mostra o estado da atualização; **Verificar funcionamento** consulta sem clicar no
 AssystNet. Recarregue a aba pelo navegador uma vez após atualizar, para carregar o código novo.
 
 ## Atualização automática da lista
 
-Na versão 3.8.1, ative “Acionar automaticamente o botão Atualizar” no popup e escolha
+Na versão 3.8.2, ative “Acionar automaticamente o botão Atualizar” no popup e escolha
 30 segundos, 1, 2 ou 5 minutos. O padrão é desligado, um minuto, sem segundo plano.
 O recurso usa os botões nativos da Página Inicial e da fila própria, sem recarregar a página.
 São adiados cliques durante edição, seleção, carregamento, gravação ou conferência da fila.
@@ -101,7 +108,7 @@ substitui essa cópia. Confira o comportamento no AssystNet real antes de distri
 
 ## Publicar para a equipe
 
-Depois de testar no ambiente real, envie `AssystNet-3.8.1-chrome.zip` como atualização no mesmo cadastro da Chrome Web Store.
+Depois de testar no ambiente real, envie `AssystNet-3.8.2-chrome.zip` como atualização no mesmo cadastro da Chrome Web Store.
 O ZIP já contém o manifesto e os arquivos de execução na raiz. A listagem, imagens, justificativas
 das permissões e declarações de privacidade são preenchidas no painel; esta entrega não publica na loja.
 Após a instalação da loja, as atualizações da mesma extensão mantêm o ID e o armazenamento.
@@ -120,6 +127,6 @@ O acesso está restrito aos dois endereços AssystNet já usados pela equipe.
 python3 build.py --browser chrome
 ```
 
-O resultado é `releases/AssystNet-3.8.1-chrome.zip`. Veja `CONSTRUIR.md` para todos os comandos,
-requisitos e verificações de reprodução. O arquivo `AssystNet-3.8.1-fontes.zip` contém o código
+O resultado é `releases/AssystNet-3.8.2-chrome.zip`. Veja `CONSTRUIR.md` para todos os comandos,
+requisitos e verificações de reprodução. O arquivo `AssystNet-3.8.2-fontes.zip` contém o código
 compartilhado e os adaptadores dos dois navegadores.

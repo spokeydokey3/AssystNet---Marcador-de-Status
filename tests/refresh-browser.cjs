@@ -21,8 +21,11 @@ const { root } = require('./harness.cjs');
           <span class="dijitButton"><span class="dijitButtonNode">
             <span role="button" data-component-tag="${tag}"><span class="refreshButtonIcon"></span>Atualizar</span>
           </span><input type="button" style="position:absolute;left:-10000px" value=""></span></div>
-          <div class="dgrid"><table><tr><td class="field-eventRef">S1</td></tr></table></div></section>
+          <div class="dgrid"><table><tr><td class="field-eventRef">S1<input type="checkbox" checked></td></tr></table></div></section>
           <div class="dijitPopup" style="position:absolute;left:-10000px;width:100px;height:20px"></div>
+          <div class="dijitPopup" style="position:absolute;left:300px;top:50px;width:100px;height:20px"></div>
+          <div role="listbox"><div role="option">Lista permanente</div></div>
+          <div role="dialog" style="position:absolute;left:-10000px">Diálogo fechado</div>
           <div data-dojo-attach-point="_underlayNode" style="display:none;position:absolute;inset:0;opacity:.75;background:#ccc;cursor:wait"></div>`;
         await page.route(origin + '/**', route => route.fulfill({ contentType: 'text/html', body: html }));
         await page.goto(origin + '/assystnet/' + (home ? '#homepage' : '#eventMonitor/4'));
