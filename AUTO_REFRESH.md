@@ -1,4 +1,4 @@
-# Atualização automática nativa — 3.8.3
+# Atualização automática nativa — 3.8.4
 
 O recurso aciona o botão Atualizar do próprio AssystNet. Não usa recarregamento do navegador,
 atalhos de teclado nem reproduz requisições internas. Não altera status, atribuição ou conteúdo
@@ -6,7 +6,7 @@ dos chamados. Os comportamentos reais do botão e do servidor continuam sendo os
 
 ## Configurar
 
-No popup, abra **Atualizar a lista de chamados**. Ative o recurso e selecione 30 segundos,
+No popup, abra **Atualização do AssystNet**. Ative o recurso e selecione 30 segundos,
 1 minuto, 2 minutos ou 5 minutos. O padrão é **desativado**, com **1 minuto** selecionado.
 **Permitir também em abas em segundo plano** começa desativado. As preferências ficam em
 browser.storage.local no perfil atual, via o adaptador Chrome quando necessário.
@@ -24,10 +24,10 @@ aberta e não renova nem contorna a sessão autenticada.
 Depois de atualizar a extensão, recarregue a aba pelo navegador (F5/Ctrl+R) uma vez para
 carregar os scripts novos. Atualizar pelo botão do AssystNet atualiza apenas a aplicação.
 No popup, **Verificar funcionamento** consulta o estado da aba de origem, sem clicar no botão
-nativo. Pode indicar intervalo, campo em edição, seleção/menu aberto, conferência da fila,
+nativo. Pode indicar intervalo, campo em edição, menu/diálogo aberto, conferência da fila,
 carregamento, segundo plano ou ausência do código na aba. Não transmite dados nem altera marcas.
 
-Em 3.8.3, wrappers .dijitPopup estacionados fora da tela não são considerados menus abertos.
+Em 3.8.4, wrappers .dijitPopup estacionados fora da tela não são considerados menus abertos.
 O carregamento inclui os underlays de dojox/widget/Standby, movidos para body e animados por
 style (display/opacity). A conclusão pode ser observada mesmo sem mudanças nos chamados.
 Os cliques manuais também são acompanhados com a opção automática desligada, para a leitura
@@ -37,7 +37,7 @@ O formato padrão de Standby foi conferido no código público DojoX 1.17.3:
 https://github.com/dojo/dojox/blob/1.17.3/widget/Standby.js
 O HTML exato do indicador institucional não foi inspecionado.
 
-## Clique no controle nativo fornecido — 3.8.3
+## Clique no controle nativo fornecido — 3.8.4
 
 O HTML completo fornecido possui .dijitButton, o span com data-component-tag e um input
 .dijitOffScreen de type=button, data-dojo-attach-point=valueNode e
@@ -52,19 +52,17 @@ Esses contadores ficam apenas na memória e não são prova de sucesso do servid
 pode confirmar conclusão visual mesmo quando os dados não mudam. Atualizar a aba pelo navegador
 reinicia os contadores; cliques manuais não entram no total automático.
 
-## Seleções e menus efetivamente abertos
+## Pausas por seleção removidas — 3.8.4
 
-Desde a correção 3.8.2, o popup distingue texto selecionado, linha marcada, menu e diálogo. A
-seleção de texto precisa ter conteúdo e estar visível na área da fila; ranges de painéis
-ocultos não bloqueiam. Linhas marcadas precisam pertencer à grade com referências do chamado
-no painel próprio. Classes em células comuns, aria-selected=false e checkboxes booleanos
-sem a função dgrid-selector não são interpretados como seleção de linha.
+A pedido do usuário, selecionar texto ou linhas não pausa mais o agendamento. Também não
+há pausa de edição só por um checkbox/radio ou botão ter foco. O módulo não consulta
+getSelection, dgrid-selected, aria-selected nem seletores de linha para bloquear o clique.
+Não limpa seleção ou marcação para prosseguir; o próprio refresh nativo pode desfazer a seleção.
 
-Um wrapper .dijitPopup vazio não é um menu aberto. Listboxes/menus permanentes só bloqueiam
-quando têm itens visíveis e pertencem a um popup, têm foco ou são expostos por um controle
-aria-expanded=true (aria-controls/aria-owns). Diálogos precisam estar na tela, sem opacity=0,
-e ter conteúdo/controles visíveis ou indicação modal explícita. As seleções reais continuam
-pausando os cliques; não são limpas para permitir a atualização.
+A pausa por edição continua para campos editáveis e selects, além dos controles da extensão
+em gravação. Menus com itens visíveis e indicação de popup/foco/controle expandido e diálogos
+visíveis continuam protegidos. Wrappers vazios e menus estacionados não bloqueiam. Leituras da
+fila e carregamentos aguardam conclusão. As regras de limpeza/CSV continuam independentes.
 
 ## Telas e seletores
 
@@ -82,7 +80,7 @@ O botão é localizado novamente a cada tentativa; nós removidos não ficam gua
 
 ## Pausas e conclusão
 
-O recurso adia cliques enquanto há edição/foco em campos, seleção de linhas ou texto,
+O recurso adia cliques enquanto há edição/foco em campos editáveis,
 diálogos e menus, gravação de tags/contatos, leitura/conferência da fila ou carregamento nativo.
 Não limpa filtros nem altera os valores da interface. A preservação de filtros, rolagem e demais
 estados pelo clique depende do comportamento nativo e precisa ser validada no sistema real.
@@ -115,8 +113,9 @@ não autorizam exclusões. Veja QUEUE_REPORT.md para a lista salva usada no CSV.
 6. Alterne as telas, ative/desative, mude o intervalo e teste a preferência de segundo plano.
 7. Exporte CSV e sincronize a fila enquanto o recurso está ativo; a conferência deve aguardar
    uma atualização e as marcações só podem ser limpas após uma leitura completa válida.
-8. Compare o estado no popup com a tela: sem edição/seleção, deve aguardar o intervalo;
-   observe pelo menos dois ciclos mesmo sem mudanças na fila. Menus abertos ainda pausam.
+8. Compare o estado no popup com a tela: sem edição/menu/diálogo, deve aguardar o intervalo;
+   observe pelo menos dois ciclos mesmo com texto/linhas selecionados e sem mudanças na fila.
+   Menus abertos e edição continuam pausando.
 9. Feche e reabra o navegador e confira a persistência das preferências.
 
 Os seletores vieram do HTML fornecido pelo usuário. Os testes automatizados usam DOM e

@@ -153,7 +153,7 @@ test('turning off during a request allows completion but never schedules another
   } finally { e.close(); }
 });
 
-test('editing, selections, modal dialogs, tag writes and queue scans defer automatic clicks', async () => {
+test('editing, modal dialogs, tag writes and queue scans still defer automatic clicks', async () => {
   const e = await setup();
   try {
     e.doc.getElementById('editor').focus(); await e.clock.tickAsync(30000); assert.equal(e.clicks.length, 0);
@@ -161,11 +161,7 @@ test('editing, selections, modal dialogs, tag writes and queue scans defer autom
     await e.clock.tickAsync(2000); assert.equal(e.clicks.length, 0);
     e.doc.getElementById('dialog').hidden = true; e.queueBusy(true); await e.clock.tickAsync(2000); assert.equal(e.clicks.length, 0);
     e.queueBusy(false); e.tagBusy(true); await e.clock.tickAsync(2000); assert.equal(e.clicks.length, 0);
-    e.tagBusy(false); e.doc.querySelector('#assigned tr').classList.add('dgrid-selected'); await e.clock.tickAsync(2000); assert.equal(e.clicks.length, 0);
-    e.doc.querySelector('#assigned tr').classList.remove('dgrid-selected');
-    const range = e.doc.createRange(); range.selectNodeContents(e.doc.querySelector('#assigned td'));
-    e.doc.getSelection().addRange(range); await e.clock.tickAsync(2000); assert.equal(e.clicks.length, 0);
-    e.doc.getSelection().removeAllRanges(); await e.clock.tickAsync(3000); assert.equal(e.clicks.length, 1);
+    e.tagBusy(false); await e.clock.tickAsync(3000); assert.equal(e.clicks.length, 1);
   } finally { e.close(); }
 });
 
@@ -333,16 +329,16 @@ test('stale selections in a hidden panel and selected rows in unrelated grids do
   } finally { e.close(); }
 });
 
-test('actual row selectors, open menus, visible dialogs and text selection report distinct pause reasons', async () => {
+test('row and text selections allow refresh while menus and dialogs keep their own pause reasons', async () => {
   const e = await setup();
   try {
     const row = e.doc.querySelector('#assigned tr');
     row.classList.add('dgrid-selected');
-    assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'rowSelection');
+    assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'waiting');
     row.classList.remove('dgrid-selected');
     const box = e.doc.createElement('input'); box.type = 'checkbox'; box.className = 'dgrid-selector'; box.checked = true;
     row.append(box);
-    assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'rowSelection');
+    assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'waiting');
     box.remove();
     const popup = e.doc.createElement('div'); popup.className = 'dijitPopup';
     popup.innerHTML = '<div role="menu"><div role="menuitem">Abrir</div></div>'; e.doc.body.append(popup);
@@ -353,10 +349,8 @@ test('actual row selectors, open menus, visible dialogs and text selection repor
     e.doc.getElementById('dialog').hidden = true;
     const range = e.doc.createRange(); range.selectNodeContents(e.doc.querySelector('#assigned td'));
     e.doc.getSelection().addRange(range);
-    assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'textSelection');
-    await e.clock.tickAsync(33000); assert.equal(e.clicks.length, 0);
-    e.doc.getSelection().removeAllRanges();
-    await e.clock.tickAsync(2000); assert.equal(e.clicks.length, 1);
+    assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'waiting');
+    await e.clock.tickAsync(33000); assert.equal(e.clicks.length, 1);
   } finally { e.close(); }
 });
 
@@ -409,5 +403,35 @@ test('supplied Dijit wrapper uses only its unique native valueNode input and kee
       assert.equal(e.w.AssystAutoRefresh.getStatus().automaticCompletions, 2);
       assert.deepEqual(e.clicks, [], 'no second click through the visible span');
     } finally { e.close(); }
+  }
+});
+
+
+test('selected rows, text and focused checkbox/radio selectors allow two cycles on both hosts and views without clearing selection', async () => {
+  for (const origin of ['http://cati.tj.ce.gov.br', 'https://cati.tjce.jus.br']) {
+    for (const hash of ['#eventMonitor/4', '#homepage']) {
+      const e = await setup({ hash, origin, standby: true });
+      try {
+        const row = e.doc.querySelector(hash === '#homepage' ? '#ownPanel tr' : '#assigned tr');
+        row.classList.add('dgrid-selected'); row.setAttribute('aria-selected', 'true');
+        const checkbox = e.doc.createElement('input'); checkbox.type = 'checkbox'; checkbox.className = 'dgrid-selector'; checkbox.checked = true;
+        const radio = e.doc.createElement('input'); radio.type = 'radio'; radio.className = 'dgrid-selector'; radio.checked = true;
+        row.querySelector('td').append(checkbox, radio);
+        const selectText = () => {
+          const range = e.doc.createRange(); range.selectNodeContents(row.querySelector('td'));
+          e.doc.getSelection().removeAllRanges(); e.doc.getSelection().addRange(range);
+          assert.equal(e.doc.getSelection().isCollapsed, false, 'selection is present before the automatic cycle');
+        };
+        checkbox.focus(); selectText();
+        assert.equal(e.w.AssystAutoRefresh.getStatus().reason, 'waiting');
+        await e.clock.tickAsync(33000); assert.equal(e.clicks.length, 1); assert.equal(e.finished, 1);
+        assert.equal(e.doc.getSelection().isCollapsed, false);
+        radio.focus(); selectText();
+        await e.clock.tickAsync(33000); assert.equal(e.clicks.length, 2); assert.equal(e.finished, 2);
+        assert.equal(row.getAttribute('aria-selected'), 'true');
+        assert.equal(checkbox.checked, true); assert.equal(radio.checked, true);
+        assert.equal(e.doc.getSelection().isCollapsed, false);
+      } finally { e.close(); }
+    }
   }
 });

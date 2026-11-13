@@ -1,10 +1,10 @@
-# Validação do Firefox e Chrome 3.8.3
+# Validação do Firefox e Chrome 3.8.4
 
 - `node --test tests/*.test.cjs`: 72 testes aprovados, com persistência/validação das preferências,
   migração dos dados, callbacks Chrome, transferência JSON/CSV, perfis novos sem presets, fila
   salva após reinício, exportação sem aba, invalidação por importação/undo e falhas atômicas.
 - `tests/dom.cjs`: onze cenários aprovados, incluindo os controles do popup e um único observer.
-- `tests/refresh-dom.cjs`: vinte e quatro cenários aprovados com jsdom 26.1.0 e temporizadores simulados
+- `tests/refresh-dom.cjs`: vinte e cinco cenários aprovados com jsdom 26.1.0 e temporizadores simulados
   por @sinonjs/fake-timers 13.0.5. Usam o HTML dos botões fornecido pelo usuário e grids sintéticos.
 - `tests/chrome-browser.cjs`: quatro verificações Chromium/Playwright 1.64.1 aprovadas com APIs
   WebExtension simuladas, incluindo a UI existente e URLs Blob com Unicode.
@@ -17,9 +17,9 @@
 - Pacotes reproduzidos byte a byte a partir do ZIP de fontes. JavaScripts compartilhados iguais
   nas duas edições. Nenhuma nova permissão.
 - Os quatro testes de portabilidade foram executados também com os arquivos dos ZIPs 3.6.0 e
-  3.8.3, em ambas as combinações Firefox/Chrome. O JSON permanece v3 e o CSV mantém os bytes/BOM.
+  3.8.4, em ambas as combinações Firefox/Chrome. O JSON permanece v3 e o CSV mantém os bytes/BOM.
 
-## Popup e botão nativo em 3.8.3
+## Popup e botão nativo em 3.8.4
 
 O popup foi renderizado a 380px no Chromium e inspecionado visualmente. A lista de tags,
 criação/gerenciamento, backup, relatório, limpeza e atualização estão nessa ordem. Os handlers
@@ -41,15 +41,14 @@ Fila vazia pode gerar relatório vazio sem apagar as marcações. Mudanças de s
 leituras rejeitam a nova conferência. São preservadas a última lista válida e a cópia de recuperação
 quando a gravação falha. Há apenas um observer. Os hosts são simulados, não acessados na rede.
 
-## Correção da falsa seleção mantida da 3.8.2
+## Pausas de seleção removidas em 3.8.4
 
-Foram reproduzidas pausas falsas da versão anterior com lista permanente e seleção de painel
-oculto. Os testes novos cobrem listas/listboxes sem relação com controles expandidos, wrappers
-vazios, booleanos da tabela, classes em células comuns, diálogos offscreen/transparentes,
-aria-selected=false, seleção de outra grade e texto em painel oculto. Textos visíveis, linhas
-reais, seletores dgrid, menus expandidos e diálogos com conteúdo mantêm as pausas corretas.
-Cada categoria apresenta sua própria mensagem. O navegador real também executa dois ciclos
-com os elementos permanentes presentes nas duas telas e nos dois hosts simulados.
+O cenário de regressão mantém texto selecionado, row aria-selected=true/dgrid-selected e
+seletores checkbox/radio marcados e focados. Dois ciclos completam nas duas telas e nos dois
+hosts simulados sem a extensão limpar a seleção. A execução Chromium também mantém seleção
+real de texto, linha e checkbox focado durante os dois ciclos. Campos em edição, menus,
+diálogos, gravações e leitura da fila continuam bloqueando em seus testes existentes.
+Não houve alteração das regras destrutivas da limpeza, do armazenamento ou do JSON.
 
 ## Correção de atualização nativa mantida
 
@@ -67,7 +66,7 @@ versão instalada no tribunal. A causa exata na sessão do usuário requer seu n
 Padrão desativado, intervalo de um minuto, opções válidas 30/60/120/300, segundo plano opt-in,
 persistência após reinício, interrupção de cliques ao desligar, troca de intervalo sem duplicar
 temporizadores, Página Inicial limitada ao painel nomeado, IDs dinâmicos, navegação SPA,
-botões ausentes/desabilitados e painéis ambíguos, edição, seleções de linhas/texto, diálogos,
+botões ausentes/desabilitados e painéis ambíguos, edição, menus e diálogos,
 gravações e leituras da fila, cliques manuais, conclusão lenta/ausente, botão recriado, BFCache e
 liberação tardia da espera. A proteção de limpeza/CSV é mantida durante uma atualização.
 

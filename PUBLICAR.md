@@ -1,7 +1,7 @@
-# Testar e publicar o Firefox 3.8.3
+# Testar e publicar o Firefox 3.8.4
 
 1. Na extensão instalada, salve e confira um backup JSON antes da atualização.
-2. Para teste temporário, extraia `AssystNet-3.8.3-submissao.zip`, abra
+2. Para teste temporário, extraia `AssystNet-3.8.4-submissao.zip`, abra
    `about:debugging#/runtime/this-firefox`, escolha **Carregar extensão temporária** e selecione
    manifest.json. Instalações temporárias não são uma distribuição permanente.
 3. Recarregue as abas pelo navegador (F5/Ctrl+R) depois de atualizar; o botão nativo do AssystNet
@@ -17,8 +17,8 @@
    lista salva, os chamados sem tag e a exclusão dos resolvidos. Teste ambos os hosts.
    Em perfil novo, confira que não existem tags predefinidas. Teste um JSON de ida e volta. O formato v3 requer 3.6.0+ no destino;
    backups antigos continuam aceitos. A limpeza não apaga as definições das tags.
-8. No cadastro existente da Mozilla, envie `AssystNet-3.8.3-submissao.zip` como nova versão e
-   `AssystNet-3.8.3-fontes.zip` no campo dos fontes. Ambos devem pertencer à versão 3.8.3.
+8. No cadastro existente da Mozilla, envie `AssystNet-3.8.4-submissao.zip` como nova versão e
+   `AssystNet-3.8.4-fontes.zip` no campo dos fontes. Ambos devem pertencer à versão 3.8.4.
 9. Use NOTAS-AMO.txt para as notas ao revisor e CONSTRUIR.md para a reprodução. Selecione desktop;
    o fluxo Android não foi validado. A assinatura e a aprovação são realizadas pela Mozilla.
 
@@ -31,18 +31,19 @@ Na passagem de temporária para permanente, use o JSON para garantir a transfer�
 ## Testar a atualização automática
 
 Siga AUTO_REFRESH.md. Ela começa desativada: habilite com um minuto e observe dois ciclos
-em cada tela, preservação nativa de filtros e seleção, sessão expirada e rede lenta. A extensão
+em cada tela, filtros, seleção de texto/linhas, sessão expirada e rede lenta. Seleções não
+pausam mais; o botão nativo pode desfazê-las ao recriar a tabela. A extensão
 não recarrega a página; os botões são os fornecidos pelo próprio AssystNet. O comportamento
 real de Ajax/Dojo e seus sinais de carregamento precisam ser conferidos pelo operador.
 
 Notas de atualização sugeridas:
 
 ```text
-Versão 3.8.3
-- Popup organizado por prioridade: tags, backup, relatório, limpeza e atualização do AssystNet.
-- Acionamento do controle nativo valueNode do botão Dijit, quando identificado sem ambiguidade.
-- Um único clique por tentativa, com as proteções de edição, seleção e carregamento mantidas.
-- Estado da atualização com contagem de tentativas automáticas e conclusões observadas na página.
-- Tags, contatos, configurações e backup JSON v3 preservados.
+Versão 3.8.4
+- Removida a pausa da atualização automática por seleção de texto ou de linhas.
+- Checkbox/radio e botões focados não são mais confundidos com campos em edição.
+- Mantidas as pausas durante edição, menus/diálogos, gravações, carregamento e leitura da fila.
+- Mantida a organização do popup: tags, backup, relatório, limpeza e atualização do AssystNet.
+- Marcações, configurações e backup JSON v3 preservados.
 Depois de instalar, recarregue a aba pelo navegador uma vez (F5/Ctrl+R).
 ```

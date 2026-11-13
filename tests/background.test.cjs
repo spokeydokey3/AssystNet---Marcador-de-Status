@@ -130,7 +130,7 @@ test('signing identity matches the uploaded 3.0 manifest and the new version use
   const { root } = require('./harness.cjs');
   const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'));
   assert.equal(manifest.browser_specific_settings.gecko.id, 'assyst-status-tagger@tjce.local');
-  assert.equal(manifest.version, '3.8.3');
+  assert.equal(manifest.version, '3.8.4');
   const targets = ['http://cati.tj.ce.gov.br/assystnet/*', 'https://cati.tjce.jus.br/assystnet/*'];
   assert.deepEqual(manifest.host_permissions, targets);
   assert.deepEqual(manifest.content_scripts[0].matches, targets);

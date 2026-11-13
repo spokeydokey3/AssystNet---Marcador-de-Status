@@ -21,7 +21,7 @@ const { root } = require('./harness.cjs');
           <span class="dijit dijitReset dijitInline refreshButton axios-toolbar-button flexContainer horizontal dijitButton"><span class="dijitReset dijitInline dijitButtonNode" data-dojo-attach-event="ondijitclick:__onClick" role="presentation">
             <span role="button" data-dojo-attach-point="titleNode,focusNode" title="Atualizar [Ctrl+Alt+R]" data-component-tag="${tag}"><span class="${home ? 'refreshButtonIcon' : 'refreshIcon'}"></span>Atualizar</span>
           </span><input type="button" class="dijitOffScreen" data-dojo-attach-event="onclick:_onClick" data-dojo-attach-point="valueNode" aria-hidden="true" style="position:absolute;left:-10000px" value=""></span></div>
-          <div class="dgrid"><table><tr><td class="field-eventRef">S1<input type="checkbox" checked></td></tr></table></div></section>
+          <div class="dgrid"><table><tr class="dgrid-row dgrid-selected" role="row" aria-selected="true"><td class="field-eventRef">S1<input type="checkbox" class="dgrid-selector" checked></td></tr></table></div></section>
           <div class="dijitPopup" style="position:absolute;left:-10000px;width:100px;height:20px"></div>
           <div class="dijitPopup" style="position:absolute;left:300px;top:50px;width:100px;height:20px"></div>
           <div role="listbox"><div role="option">Lista permanente</div></div>
@@ -49,6 +49,10 @@ const { root } = require('./harness.cjs');
             storage: { local: { async get() { return { assyst_refresh_settings: prefs }; } },
               onChanged: { addListener() {}, removeListener() {} } } };
           window.AssystQueueSync = { isBusy: () => false, changed() {}, refreshFinished() { window.completions++; } };
+          document.querySelector('.dgrid-selector').focus();
+          const cell = document.querySelector('.field-eventRef');
+          const range = document.createRange(); range.selectNodeContents(cell);
+          document.getSelection().addRange(range);
           // Model dijit/form/_ButtonMixin.__onClick forwarding to its offscreen valueNode.
           const nativeButton = document.querySelector('.dijitButton');
           nativeButton.querySelector('.dijitButtonNode').addEventListener('click', event => {
@@ -64,6 +68,7 @@ const { root } = require('./harness.cjs');
         for (const name of ['data.js', 'autoRefresh.js', 'content.js']) {
           await page.addScriptTag({ content: fs.readFileSync(path.join(root, name), 'utf8') + `\n//# sourceURL=assyst-test/${name}` });
         }
+        assert.equal(await page.evaluate(() => document.getSelection().isCollapsed), false);
         await page.clock.runFor(33000);
         let status = await page.evaluate(() => ({ requests: nativeRequests, completed: completions,
           observers, stacks: observerStacks, status: AssystAutoRefresh.getStatus() }));
@@ -75,6 +80,9 @@ const { root } = require('./harness.cjs');
           pending: AssystAutoRefresh.isRefreshing() }));
         assert.equal(status.requests, 2); assert.equal(status.completed, 2); assert.equal(status.pending, false);
         assert.equal(await page.evaluate(() => wrapperClicks), 0, 'uses the supplied native valueNode without a second span click');
+        assert.equal(await page.evaluate(() => document.getSelection().isCollapsed), false);
+        assert.equal(await page.locator('.dgrid-selector').isChecked(), true);
+        assert.equal(await page.locator('.dgrid-row').getAttribute('aria-selected'), 'true');
         assert.deepEqual(errors, []);
         console.log(`PASS Chromium native DOM: ${origin}, ${home ? 'homepage' : 'own queue'}, native valueNode click, unchanged data, one-second Standby, two cycles, one observer.`);
         await page.close();

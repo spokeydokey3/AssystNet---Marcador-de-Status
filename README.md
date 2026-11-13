@@ -1,11 +1,11 @@
-# AssystNet · Marcador de Status — Firefox e Chrome 3.8.3
+# AssystNet · Marcador de Status — Firefox e Chrome 3.8.4
 
 Extensão Manifest V3, JavaScript/HTML/CSS puros, sem frameworks, bundlers ou dependências
 de execução. Os dados ficam exclusivamente em `browser.storage.local`, no perfil do navegador.
-As edições Firefox e Chrome 3.8.3 usam o mesmo código de dados, interface e fila. Os manifestos
+As edições Firefox e Chrome 3.8.4 usam o mesmo código de dados, interface e fila. Os manifestos
 e downloads têm adaptação por navegador. Veja CHROME.md para atualizar a instalação Chrome.
 
-## Organização do popup — 3.8.3
+## Organização do popup — 3.8.4
 
 As funcionalidades aparecem na ordem do uso principal: tags (lista, criação e chamados
 marcados), backup/troca de computador, relatório, limpeza automática e atualização do AssystNet.
@@ -41,14 +41,16 @@ Os mesmos recursos estão habilitados nos ambientes interno e externo:
 No mesmo perfil/navegador, ambos usam as mesmas marcações. Entre computadores ou navegadores,
 transfira o backup JSON; a fila conferida deve ser lida novamente no destino.
 
-## Pausas reais e elementos permanentes mantidas
+## Seleção não pausa a atualização — 3.8.4
 
-A atualização distingue texto visível selecionado, linhas/seletores da grade da sua fila,
-menus abertos e diálogos visíveis. Listboxes permanentes sem foco/controle expandido,
-wrappers vazios, diálogos invisíveis/offscreen, classes de seleção em células comuns e
-checkboxes de dados booleanos não pausam a atualização. Seleções de painéis ocultos ou
-linhas de outros painéis não bloqueiam o painel próprio. O popup informa a categoria real
-da pausa; não usa mais a mensagem agrupada “texto/linha ou menu”.
+Selecionar texto, marcar linhas ou manter foco em seletores checkbox/radio não pausa mais
+os cliques automáticos. A extensão não consulta a seleção de texto nem usa classes/atributos
+de seleção das linhas para decidir atualizar. Ela não desmarca nem limpa a seleção.
+O próprio AssystNet pode refazer a tabela e desfazer essa seleção ao atualizar.
+
+Permanecem as pausas por edição de campos, menus/diálogos abertos, gravação de marcações,
+carregamento e conferência da fila. Botões e checkboxes focados não são tratados como texto
+em edição. As regras de segurança da limpeza da fila são independentes e permanecem iguais.
 
 ## Proteções da atualização automática mantidas
 
@@ -58,7 +60,7 @@ A animação não reinicia o temporizador de segurança; a atualização manual 
 leituras da fila quando o agendamento automático está desligado.
 
 O popup mostra o estado da atualização. **Verificar funcionamento** consulta a aba de origem,
-sem atualizar o AssystNet. Indica espera, carregamento, campo em edição, seleção, leitura da
+sem atualizar o AssystNet. Indica espera, carregamento, campo em edição, menu/diálogo aberto, leitura da
 fila ou código ainda não carregado. Após instalar esta atualização, recarregue a aba pelo
 navegador (F5/Ctrl+R), uma vez; o botão nativo do AssystNet não recarrega os scripts da extensão.
 
@@ -71,7 +73,7 @@ Há opções de 30 segundos, 1, 2 e 5 minutos, e segundo plano desligado por pad
 Ele não recarrega a página, não reproduz requisições internas e não altera chamados.
 As preferências ficam no perfil em browser.storage.local, separadas do backup de chamados.
 
-Há pausas para edição, seleção, carregamento e varredura da fila, um único temporizador por
+Há pausas para edição, menus/diálogos, carregamento e varredura da fila, um único temporizador por
 controlador e nenhum observer adicional. Sem confirmação observável de término, não são
 repetidos cliques. Consulte AUTO_REFRESH.md para seletores, limites e validação real necessária.
 A atualização dos dados pelo botão nativo e a limpeza das marcações locais são opções distintas.
