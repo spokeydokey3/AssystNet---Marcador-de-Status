@@ -1,14 +1,15 @@
-Version: 3.8.4
+Versions: Firefox 3.8.4, Chrome 3.8.5
 Environment: Linux, Python 3.12.14
 
 AssystNet-3.8.4-submissao.zip
 SHA256: 2ee2bce2d96ac8cb1517c65187f242dfc01cff3e8d62c45146a690aa7a449d3f
 Build: python3 build.py --browser firefox
 
-AssystNet-3.8.4-chrome.zip
-SHA256: 834d01ed2ed876f0e15e5ccd233f91b43525ec79e25f2044b4365eaf2b132b60
+AssystNet-3.8.5-chrome.zip
+SHA256: d1b7d9a13b66aa8c0788a05a35847d772a45098cb597a0c60a3be77a806f9244
 Build: python3 build.py --browser chrome
 
 Both packages use identical shared JavaScript and the same JSON v3 format.
-Chrome writes its own manifest and includes a compatibility script in popup.html.
+Chrome writes its own manifest, includes its compatibility script and authorship footer,
+and links chrome/branding.css. chrome/metadata.json defines its version and author.
 No third-party runtime/build dependencies. See CONSTRUIR.md and VALIDACAO.md.

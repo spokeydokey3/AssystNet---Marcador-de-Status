@@ -1,9 +1,17 @@
-# AssystNet · Marcador de Status — Firefox e Chrome 3.8.4
+# AssystNet · Marcador de Status — Firefox 3.8.4 e Chrome 3.8.5
 
 Extensão Manifest V3, JavaScript/HTML/CSS puros, sem frameworks, bundlers ou dependências
 de execução. Os dados ficam exclusivamente em `browser.storage.local`, no perfil do navegador.
-As edições Firefox e Chrome 3.8.4 usam o mesmo código de dados, interface e fila. Os manifestos
+As edições Firefox 3.8.4 e Chrome 3.8.5 usam o mesmo código de dados, interface e fila. Os manifestos
 e downloads têm adaptação por navegador. Veja CHROME.md para atualizar a instalação Chrome.
+
+## Autoria no Chrome — 3.8.5
+
+O popup e sua janela de transferência incluem o rodapé discreto “Desenvolvido por Spokey Dokey”.
+O manifesto Chrome também declara esse autor. A assinatura é incluída somente ao construir
+Chrome; Firefox continua em 3.8.4 com o mesmo pacote. O JavaScript e o formato JSON não mudaram.
+A versão e o autor específicos do Chrome ficam em chrome/metadata.json; o estilo do rodapé
+fica em chrome/branding.css. O build inclui o texto de autoria no HTML dessa edição.
 
 ## Organização do popup — 3.8.4
 

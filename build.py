@@ -3,6 +3,7 @@
 import argparse
 from collections import OrderedDict
 import hashlib
+from html import escape
 import json
 from pathlib import Path
 import zipfile
@@ -13,7 +14,7 @@ FILES = (
     'popup.html', 'popup.css', 'popup.js', 'detail.js', 'autoRefresh.js',
 )
 CHROME_FILES = ('chrome/compat.js', 'chrome/service-worker.js', 'chrome/downloads.js',
-                'chrome/offscreen.html', 'chrome/offscreen.js')
+                'chrome/offscreen.html', 'chrome/offscreen.js', 'chrome/branding.css')
 
 
 def contents(browser='firefox', sources=False):
@@ -22,12 +23,15 @@ def contents(browser='firefox', sources=False):
     assert manifest['browser_specific_settings']['gecko']['id'] == 'assyst-status-tagger@tjce.local'
     files = OrderedDict((name, (ROOT / name).read_bytes()) for name in FILES)
     if sources:
-        names = list(CHROME_FILES) + ['build.py', 'README.md', 'CHROME.md', 'CONSTRUIR.md',
+        names = list(CHROME_FILES) + ['chrome/metadata.json', 'build.py', 'README.md', 'CHROME.md', 'CONSTRUIR.md',
                                      'PUBLICAR.md', 'NOTAS-AMO.txt', 'REPRODUCAO.txt', 'VALIDACAO.md', 'AUTO_REFRESH.md', 'QUEUE_REPORT.md']
         names += [str(p.relative_to(ROOT)) for p in sorted((ROOT / 'tests').glob('*.cjs'))]
         for name in names:
             files[name] = (ROOT / name).read_bytes()
     elif browser == 'chrome':
+        metadata = json.loads((ROOT / 'chrome/metadata.json').read_text(encoding='utf-8'))
+        manifest['version'] = metadata['version']
+        manifest['author'] = metadata['author']
         del manifest['browser_specific_settings']
         manifest['minimum_chrome_version'] = '116'
         manifest['background'] = {'service_worker': 'chrome/service-worker.js'}
@@ -38,6 +42,10 @@ def contents(browser='firefox', sources=False):
         popup = files['popup.html'].decode('utf-8')
         anchor = '<script src="data.js"'
         assert popup.count(anchor) == 1, 'Cannot locate shared popup scripts'
+        style_anchor = '<link rel="stylesheet" href="popup.css">'
+        assert popup.count(style_anchor) == 1 and popup.count('</main>') == 1, 'Cannot locate popup branding anchors'
+        popup = popup.replace(style_anchor, style_anchor + '\n  <link rel="stylesheet" href="chrome/branding.css">', 1)
+        popup = popup.replace('</main>', f'</main>\n  <footer class="assyst-author">Desenvolvido por <strong>{escape(metadata["author"])}</strong></footer>', 1)
         files['popup.html'] = popup.replace(anchor, '<script src="chrome/compat.js"></script>\n  ' + anchor, 1).encode('utf-8')
         for name in CHROME_FILES:
             files[name] = (ROOT / name).read_bytes()
@@ -63,7 +71,7 @@ def main():
     parser.add_argument('--output', type=Path)
     parser.add_argument('--verify', type=Path, help='Compare the output byte for byte with the submitted ZIP.')
     args = parser.parse_args()
-    version = json.loads((ROOT / 'manifest.json').read_text(encoding='utf-8'))['version']
+    version = json.loads(contents(args.browser)['manifest.json'])['version']
     suffix = 'fontes' if args.sources else 'chrome' if args.browser == 'chrome' else 'submissao'
     output = args.output or ROOT / 'releases' / f'AssystNet-{version}-{suffix}.zip'
     digest = build(output, args.browser, args.sources)

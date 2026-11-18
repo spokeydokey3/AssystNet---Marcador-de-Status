@@ -1,12 +1,20 @@
-# AssystNet para Chrome — 3.8.4
+# AssystNet para Chrome — 3.8.5
 
 Esta é uma extensão Manifest V3 para Chrome desktop 116 ou posterior. Usa os mesmos
 dados, tags, quatro tentativas de contato, interface e relatórios da versão Firefox.
 É desenvolvida no mesmo projeto, com pacote e manifesto específicos para cada navegador.
 
+## Assinatura de autoria
+
+O rodapé do popup e da janela de transferência mostra “Desenvolvido por Spokey Dokey”, em
+11px e cinza discreto. O manifesto também declara author: Spokey Dokey. A versão 3.8.5 muda
+somente manifesto, HTML do popup e acrescenta chrome/branding.css; todo o JavaScript continua
+idêntico ao Chrome 3.8.4. Não há alteração de armazenamento, permissões ou atualização automática.
+Firefox permanece em 3.8.4. Versão/autor Chrome são definidos em chrome/metadata.json.
+
 ## Instalar para testar
 
-1. Baixe e extraia `AssystNet-3.8.4-chrome.zip` em uma pasta permanente.
+1. Baixe e extraia `AssystNet-3.8.5-chrome.zip` em uma pasta permanente.
 2. Abra `chrome://extensions` e ative **Modo do desenvolvedor**.
 3. Clique em **Carregar sem compactação** e selecione a pasta extraída que contém `manifest.json`.
 4. No menu de extensões, fixe o ícone do AssystNet se desejar.
@@ -59,7 +67,7 @@ Cada marcação recebe a data atual, que pode não ser a data do contato real. D
 e referência de sete dias são apenas informativos; não há bloqueio por intervalo, fins de
 semana, feriados ou resposta informada. A extensão não autoriza nem realiza encerramentos.
 
-## Popup e acionamento em 3.8.4
+## Popup e acionamento em 3.8.5
 
 Tags vêm primeiro, seguidas de backup, relatório, limpeza automática e atualização do AssystNet.
 O input nativo valueNode do botão Dijit fornecido é acionado uma única vez quando identificado
@@ -76,7 +84,7 @@ lista. Alterações posteriores no servidor exigem nova conferência. A lista n�
 é invalidada ao importar JSON ou desfazer limpeza. Ambos os hosts do manifesto usam os mesmos
 recursos e dados no mesmo perfil. Veja QUEUE_REPORT.md.
 
-## Seleções não bloqueiam em 3.8.4
+## Seleções não bloqueiam em 3.8.5
 
 Texto selecionado, linhas marcadas e foco em checkbox/radio não pausam a atualização.
 A extensão não limpa a seleção; o refresh nativo pode desfazê-la ao recriar a tabela.
@@ -86,14 +94,14 @@ continuam iguais.
 
 ## Correção de agendamento mantida
 
-A versão 3.8.4 reconhece o fim da animação de Standby mesmo sem mudança de dados e ignora menus
+A versão 3.8.5 reconhece o fim da animação de Standby mesmo sem mudança de dados e ignora menus
 Dojo estacionados fora da tela. A leitura da fila aguarda atualizações manuais e automáticas.
 O popup mostra o estado da atualização; **Verificar funcionamento** consulta sem clicar no
 AssystNet. Recarregue a aba pelo navegador uma vez após atualizar, para carregar o código novo.
 
 ## Atualização automática da lista
 
-Na versão 3.8.4, ative “Acionar automaticamente o botão Atualizar” no popup e escolha
+Na versão 3.8.5, ative “Acionar automaticamente o botão Atualizar” no popup e escolha
 30 segundos, 1, 2 ou 5 minutos. O padrão é desligado, um minuto, sem segundo plano.
 O recurso usa os botões nativos da Página Inicial e da fila própria, sem recarregar a página.
 São adiados cliques durante edição, menus/diálogos, carregamento, gravação ou conferência da fila.
@@ -116,7 +124,7 @@ substitui essa cópia. Confira o comportamento no AssystNet real antes de distri
 
 ## Publicar para a equipe
 
-Depois de testar no ambiente real, envie `AssystNet-3.8.4-chrome.zip` como atualização no mesmo cadastro da Chrome Web Store.
+Depois de testar no ambiente real, envie `AssystNet-3.8.5-chrome.zip` como atualização no mesmo cadastro da Chrome Web Store.
 O ZIP já contém o manifesto e os arquivos de execução na raiz. A listagem, imagens, justificativas
 das permissões e declarações de privacidade são preenchidas no painel; esta entrega não publica na loja.
 Após a instalação da loja, as atualizações da mesma extensão mantêm o ID e o armazenamento.
@@ -135,6 +143,6 @@ O acesso está restrito aos dois endereços AssystNet já usados pela equipe.
 python3 build.py --browser chrome
 ```
 
-O resultado é `releases/AssystNet-3.8.4-chrome.zip`. Veja `CONSTRUIR.md` para todos os comandos,
-requisitos e verificações de reprodução. O arquivo `AssystNet-3.8.4-fontes.zip` contém o código
+O resultado é `releases/AssystNet-3.8.5-chrome.zip`. Veja `CONSTRUIR.md` para todos os comandos,
+requisitos e verificações de reprodução. O arquivo `AssystNet-3.8.5-fontes.zip` contém o código
 compartilhado e os adaptadores dos dois navegadores.

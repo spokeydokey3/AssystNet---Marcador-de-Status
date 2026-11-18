@@ -1,4 +1,18 @@
-# Validação do Firefox e Chrome 3.8.4
+# Validação — Firefox 3.8.4 e Chrome 3.8.5
+
+## Verificação pontual da assinatura Chrome 3.8.5
+
+A alteração é visual e de metadados. A comparação dos ZIPs Chrome confirma que apenas
+manifest.json e popup.html mudaram e chrome/branding.css foi acrescentado. Os JavaScripts,
+CSS compartilhado, dados e permissões são idênticos aos do Chrome 3.8.4. O Firefox foi
+reproduzido byte a byte contra o ZIP 3.8.4 original. Não há mudança na funcionalidade de
+atualização automática. A reprodução do Chrome a partir do ZIP de fontes também foi conferida.
+O HTML, o CSS e a autoria foram conferidos estaticamente no pacote. A prévia automática
+no Chromium deste ambiente excedeu o tempo limite; não se afirma inspeção visual nem
+instalação desta edição. As suítes funcionais abaixo pertencem à base 3.8.4
+e não foram repetidas por esta alteração de baixo impacto.
+
+## Validação funcional anterior — base 3.8.4
 
 - `node --test tests/*.test.cjs`: 72 testes aprovados, com persistência/validação das preferências,
   migração dos dados, callbacks Chrome, transferência JSON/CSV, perfis novos sem presets, fila
